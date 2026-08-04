@@ -1,13 +1,15 @@
 import LoginForm from "../components/LoginForm";
+import AuthLayout from "../layouts/AuthLayout";
+import { Link } from "react-router-dom";
 
 const Login = () => {
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+    <AuthLayout>
 
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
 
         <h1 className="text-3xl font-bold text-center text-blue-700">
-          Counselling Cell Portal
+          Counselling Portal
         </h1>
 
         <p className="text-center text-gray-500 mt-2">
@@ -25,15 +27,18 @@ const Login = () => {
         <p className="text-center mt-6">
           Don't have an account?
 
-          <span className="text-blue-600 ml-2 cursor-pointer">
+          <Link
+            to="/register"
+            className="text-blue-600 ml-2 hover:underline"
+          >
             Register
-          </span>
+          </Link>
 
         </p>
 
       </div>
 
-    </div>
+    </AuthLayout>
   );
 };
 
