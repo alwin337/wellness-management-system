@@ -1,31 +1,33 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const app = express()
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+
+const connectDB = require("./config/db");
+const authRoutes = require("./routes/authRouter");
+
+dotenv.config();
+
+connectDB();
+
+const app = express();
+
+app.use(cors());
+
+app.use(express.json());
 
 
-app.use(express.json())
-require('dotenv').config()
-
-const port = process.env.PORT
-console.log(port)
-
-main()
-.then(()=>console.log("Db Connected"))
-.catch(err => console.log(err));
-
-async function main() {
-  await mongoose.connect(process.env.MONGODB_URL)
-
-}
-
-//app.use('/product',productRouter)
-//app.use('/categories',categoryRouter)
+// Test route
+app.get("/", (req, res) => {
+  res.send("MindCare API is running");
+});
 
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+// Authentication routes
+app.use("/api/auth", authRoutes);
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
