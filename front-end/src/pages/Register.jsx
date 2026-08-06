@@ -64,7 +64,7 @@ const Register = () => {
           Already have an account?
 
           <Link
-            to="/"
+            to="/login"
             className="text-blue-600 ml-2 hover:underline"
           >
             Login
