@@ -11,7 +11,10 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
+//allows frontend to communicate w backend
+app.use(cors({
+    origin: "http://localhost:5173",
+}));
 
 app.use(express.json());
 
