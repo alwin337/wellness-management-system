@@ -9,7 +9,7 @@ const Login = () => {
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
 
         <h1 className="text-3xl font-bold text-center text-blue-700">
-          Counselling Portal
+          Counselling Cell Portal
         </h1>
 
         <p className="text-center text-gray-500 mt-2">

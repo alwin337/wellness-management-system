@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 
 import PublicLayout from "./layouts/PublicLayouts";
-import AuthLayout from "./layouts/AuthLayout";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -12,19 +12,29 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
-    <Routes>
-      <Route element={<PublicLayout/>}>
-        <Route path="/" element={<Home/>} />
-      </Route>
-      {/* Authentication */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+    <>
+      <Routes>
+        {/* Public Pages */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+        </Route>
 
-      {/* Dashboard Section*/}
-      <Route path="/student" element={<StudentDashboard />} />
-      <Route path="/counsellor" element={<CounsellorDashboard />} />
-      <Route path="/admin" element={<AdminDashboard />} />
-    </Routes>
+        {/* Authentication */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Dashboard */}
+        <Route path="/student" element={<StudentDashboard />} />
+        <Route path="/counsellor" element={<CounsellorDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        theme="colored"
+      />
+    </>
   );
 }
 
