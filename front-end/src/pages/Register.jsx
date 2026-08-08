@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { registerUser } from "../services/authApi";
 
 import AuthLayout from "../layouts/AuthLayout";
 import InputField from "../components/InputField";
@@ -78,7 +79,7 @@ const Register = () => {
   };
 
   // Handle Form Submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -86,11 +87,32 @@ const Register = () => {
       return;
     }
 
-    toast.success("Registration Successful!");
+    try{
+      const { confirmPassword, ...userData } = formData;
 
-    console.log(formData);
+      const response = await registerUser(userData);
 
-    // Later we'll send this data to the backend using Axios
+      toast.success(
+        response.data.message || "Registration Successful!"
+      );
+      
+      console.log(response.data);
+    
+      // Clear the form after successful registration
+      setFormData({
+        name: "",
+        email: "",
+        department: "",
+        year: "",
+        password: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Registration failed"
+      );
+    }
+
   };
 
   return (
