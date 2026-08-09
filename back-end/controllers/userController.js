@@ -7,7 +7,17 @@ const getUserProfile = async(req,res) => {
         if(!user){
             return res.status(404).json({message: 'User not found'})
         }
-        res.json(user)
+        res.status(200).json({
+        user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        department: user.department,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
     } catch (error) {
         res.status(500).json({message: 'server error retreiving profile'})
     }
