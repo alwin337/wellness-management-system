@@ -6,6 +6,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRouter");
 const userRoutes = require('./routes/userRouter')
 const counsellorRoutes = require('./routes/counsellorRouter')
+const scheduleRoutes = require('./routes/scheduleRouter')
 
 dotenv.config();
 
@@ -35,6 +36,12 @@ app.use("/api/users", userRoutes)
 
 //counsellor management
 app.use("/api/counsellors",counsellorRoutes)
+
+//schedule management
+app.use(
+  "/api/schedules",
+  scheduleRoutes
+)
 
 const PORT = process.env.PORT || 5000;
 
