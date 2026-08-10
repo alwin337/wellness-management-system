@@ -1,7 +1,7 @@
 // TO make sure only admin can create/edit/delete counsellor
 
 const adminOnly = (req,res,next) => {
-    if(req.user && req.user.role === 'Admin'){
+    if(req.user && req.user.role === 'admin'){
         next()
     }else{
         res.status(403).json({

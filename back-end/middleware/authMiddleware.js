@@ -1,46 +1,56 @@
-//Verify JWT & Protect private routes
-const jwt = require('jsonwebtoken')
-const User = require('../models/User')
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const protect = async(req,res,next) => {
-    try {
-        let token
+const protect = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
 
-        const authHeader = req.headers.authorization
+    console.log("AUTH HEADER:", authHeader);
 
-        if(authHeader && authHeader.startsWith("Bearer ")){
-             token = authHeader.split(" ")[1]
-        }
-
-        if(!token){
-            return res.status(401).json({
-                message:"not authorized no token provided"
-            })
-        }
-
-        const decoded = jwt.verify(
-            token,
-            process.env.JWT_SECRET
-        )
-
-        const user = await User.findById(decoded.id).select(
-            "-password"
-          );
-
-          if (!user) {
-            return res.status(401).json({
-              message: "User not found",
-            });
-          }
-          req.user = user;
-
-          next()
-
-    } catch (error) {
-        return res.status(401).json({
-            message: "Invalid or expired token",
-          });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("❌ No Bearer token");
+      return res.status(401).json({
+        message: "No token provided",
+      });
     }
-}
 
-module.exports = protect
+    const token = authHeader.split(" ")[1];
+
+    console.log("TOKEN RECEIVED:", token);
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    console.log("DECODED:", decoded);
+
+    const user = await User.findById(decoded.id).select("-password");
+
+    console.log("USER FOUND:", user);
+
+    if (!user) {
+      console.log("❌ User not found");
+      return res.status(401).json({
+        message: "User not found",
+      });
+    }
+
+    req.user = user;
+
+    console.log("✅ PROTECT PASSED");
+    console.log("ROLE:", req.user.role);
+
+    next();
+
+  } catch (error) {
+    console.log("❌ JWT ERROR:", error.message);
+
+    return res.status(401).json({
+      message: "Invalid or expired token",
+      error: error.message
+    });
+  }
+};
+
+module.exports = protect;
