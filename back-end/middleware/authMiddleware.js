@@ -8,7 +8,7 @@ const protect = async (req, res, next) => {
     console.log("AUTH HEADER:", authHeader);
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.log("❌ No Bearer token");
+      console.log(" No Bearer token");
       return res.status(401).json({
         message: "No token provided",
       });
@@ -30,7 +30,7 @@ const protect = async (req, res, next) => {
     console.log("USER FOUND:", user);
 
     if (!user) {
-      console.log("❌ User not found");
+      console.log("User not found");
       return res.status(401).json({
         message: "User not found",
       });
