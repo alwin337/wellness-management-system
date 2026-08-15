@@ -10,48 +10,61 @@ const {
   deleteSchedule,
 } = require("../controllers/scheduleController");
 
-const protect = require("../middleware/authMiddleware");
-const { adminOnly } = require("../middleware/adminMiddleware");
+const {
+  protect,
+  roleCheck,
+} = require("../middleware/authMiddleware");
 
 
+// ==========================================
 // VIEW SCHEDULES
-// Logged-in users
+// ==========================================
 
-
+// Logged-in users and counsellors can view schedules
 router.get(
   "/",
   protect,
+  roleCheck("student", "counsellor"),
   getAllSchedules
 );
 
+
+// View schedules of a specific counsellor
 router.get(
   "/counsellor/:counsellorId",
   protect,
+  roleCheck("student", "counsellor"),
   getCounsellorSchedules
 );
 
 
-// ADMIN MANAGEMENT
+// ==========================================
+// COUNSELLOR MANAGEMENT
+// ==========================================
 
-
+// Counsellor creates schedule
 router.post(
   "/",
   protect,
-  adminOnly,
+  roleCheck("counsellor"),
   addSchedule
 );
 
+
+// Counsellor updates schedule
 router.put(
   "/:id",
   protect,
-  adminOnly,
+  roleCheck("counsellor"),
   updateSchedule
 );
 
+
+// Counsellor deletes schedule
 router.delete(
   "/:id",
   protect,
-  adminOnly,
+  roleCheck("counsellor"),
   deleteSchedule
 );
 
