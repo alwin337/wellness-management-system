@@ -16,10 +16,9 @@ const createAppointment = async (req, res) => {
       notes,
     } = req.body;
 
-    // Check schedule
     const schedule = await Schedule.findOne({
       _id: scheduleId,
-      counsellorId,
+      counsellor: counsellorId,
       isAvailable: true,
     });
 
@@ -29,8 +28,9 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // Check counsellor
-    const counsellor = await Counsellor.findById(counsellorId);
+    const counsellor = await Counsellor.findById(
+      counsellorId
+    );
 
     if (!counsellor) {
       return res.status(404).json({
@@ -38,7 +38,6 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // Create appointment
     const appointment = await Appointment.create({
       userId,
       counsellorId,
@@ -50,7 +49,6 @@ const createAppointment = async (req, res) => {
       notes,
     });
 
-    // Make schedule unavailable
     schedule.isAvailable = false;
     await schedule.save();
 
@@ -192,10 +190,18 @@ const cancelMyAppointment = async (req, res) => {
 
 const getCounsellorAppointments = async (req, res) => {
   try {
-    const counsellorId = req.user.counsellorId;
+    const counsellor = await Counsellor.findOne({
+      user: req.user._id,
+    });
+
+    if (!counsellor) {
+      return res.status(404).json({
+        message: "Counsellor profile not found",
+      });
+    }
 
     const appointments = await Appointment.find({
-      counsellorId,
+      counsellorId: counsellor._id,
     })
       .populate(
         "userId",
@@ -203,15 +209,22 @@ const getCounsellorAppointments = async (req, res) => {
       )
       .populate(
         "scheduleId",
-        "date startTime endTime"
+        "date startTime endTime isAvailable"
       )
-      .sort({ appointmentDate: 1 });
+      .sort({
+        appointmentDate: 1,
+      });
 
     res.status(200).json({
       appointments,
     });
 
   } catch (error) {
+    console.error(
+      "GET COUNSELLOR APPOINTMENTS ERROR:",
+      error.message
+    );
+
     res.status(500).json({
       message: "Failed to fetch counsellor appointments",
       error: error.message,
@@ -224,18 +237,30 @@ const getCounsellorAppointments = async (req, res) => {
 
 const getCounsellorAppointmentById = async (req, res) => {
   try {
-    const counsellorId = req.user.counsellorId;
     const { id } = req.params;
+
+    const counsellor = await Counsellor.findOne({
+      user: req.user._id,
+    });
+
+    if (!counsellor) {
+      return res.status(404).json({
+        message: "Counsellor profile not found",
+      });
+    }
 
     const appointment = await Appointment.findOne({
       _id: id,
-      counsellorId,
+      counsellorId: counsellor._id,
     })
       .populate(
         "userId",
         "name email contactNumber"
       )
-      .populate("scheduleId");
+      .populate(
+        "scheduleId",
+        "date startTime endTime isAvailable"
+      );
 
     if (!appointment) {
       return res.status(404).json({
@@ -248,6 +273,11 @@ const getCounsellorAppointmentById = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(
+      "GET COUNSELLOR APPOINTMENT ERROR:",
+      error.message
+    );
+
     res.status(500).json({
       message: "Failed to fetch appointment",
       error: error.message,
@@ -260,9 +290,18 @@ const getCounsellorAppointmentById = async (req, res) => {
 
 const updateAppointmentStatus = async (req, res) => {
   try {
-    const counsellorId = req.user.counsellorId;
     const { id } = req.params;
     const { status } = req.body;
+
+    const counsellor = await Counsellor.findOne({
+      user: req.user._id,
+    });
+
+    if (!counsellor) {
+      return res.status(404).json({
+        message: "Counsellor profile not found",
+      });
+    }
 
     const allowedStatuses = [
       "confirmed",
@@ -279,7 +318,7 @@ const updateAppointmentStatus = async (req, res) => {
 
     const appointment = await Appointment.findOne({
       _id: id,
-      counsellorId,
+      counsellorId: counsellor._id,
     });
 
     if (!appointment) {
@@ -292,7 +331,6 @@ const updateAppointmentStatus = async (req, res) => {
 
     await appointment.save();
 
-    // If cancelled/rejected, make schedule available again
     if (
       status === "cancelled" ||
       status === "rejected"
@@ -311,6 +349,11 @@ const updateAppointmentStatus = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(
+      "UPDATE APPOINTMENT STATUS ERROR:",
+      error.message
+    );
+
     res.status(500).json({
       message: "Failed to update appointment",
       error: error.message,

@@ -38,13 +38,13 @@ const protect = async (req, res, next) => {
 
     req.user = user;
 
-    console.log("✅ PROTECT PASSED");
+    console.log("PROTECT PASSED");
     console.log("ROLE:", req.user.role);
 
     next();
 
   } catch (error) {
-    console.log("❌ JWT ERROR:", error.message);
+    console.log(" JWT ERROR:", error.message);
 
     return res.status(401).json({
       message: "Invalid or expired token",
@@ -53,4 +53,29 @@ const protect = async (req, res, next) => {
   }
 };
 
+
+//checks user role
+const roleCheck = (...allowedRoles) => {
+  return (req, res, next) => {
+    console.log("ROLE CHECK");
+    console.log("USER ROLE:", req.user?.role);
+    console.log("ALLOWED ROLES:", allowedRoles);
+
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Authentication required",
+      });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Access denied",
+      });
+    }
+
+    next();
+  };
+};
 module.exports = protect;
+module.exports.protect = protect
+module.exports.roleCheck = roleCheck
