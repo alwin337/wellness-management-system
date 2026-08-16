@@ -3,7 +3,8 @@ import { NavLink } from "react-router-dom";
 const Sidebar = ({ role = "student" }) => {
   const menus = {
     student: [
-      { name: "Dashboard", path: "/student" },
+      { name: "Dashboard", path: "/student" },git commit -m "Build student dashboard layout"
+      
       { name: "My Profile", path: "/student/profile" },
       { name: "Appointments", path: "/student/appointments" },
       { name: "Schedule", path: "/student/schedule" },
