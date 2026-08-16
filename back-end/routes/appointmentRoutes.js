@@ -23,7 +23,7 @@ const router = express.Router();
 router.post(
   "/",
   protect,
-  roleCheck("user"),
+  roleCheck("student"),
   createAppointment
 );
 
@@ -31,7 +31,7 @@ router.post(
 router.get(
   "/my",
   protect,
-  roleCheck("user"),
+  roleCheck("student"),
   getMyAppointments
 );
 
@@ -39,7 +39,7 @@ router.get(
 router.get(
   "/my/:id",
   protect,
-  roleCheck("user"),
+  roleCheck("student"),
   getMyAppointmentById
 );
 
@@ -47,7 +47,7 @@ router.get(
 router.patch(
   "/my/:id/cancel",
   protect,
-  roleCheck("user"),
+  roleCheck("student"),
   cancelMyAppointment
 );
 
