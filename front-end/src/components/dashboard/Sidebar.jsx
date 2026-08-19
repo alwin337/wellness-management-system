@@ -1,18 +1,56 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { 
+  LayoutDashboard, 
+  UserCircle, 
+  CalendarCheck, 
+  CalendarDays, 
+  Users, 
+  UserCog, 
+  LogOut,
+  X 
+} from "lucide-react";
 
-const Sidebar = ({ role = "student" }) => {
+const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
+
+  const menuIcons = {
+    // Student links
+    "/student": LayoutDashboard,
+    "/student/profile": UserCircle,
+    "/student/appointments": CalendarCheck,
+    "/student/schedule": CalendarDays,
+    
+    // Counsellor links
+    "/counsellor": LayoutDashboard,
+    "/counsellor/appointments": CalendarCheck,
+    "/counsellor/schedule": CalendarDays,
+    
+    // Admin links
+    "/admin": LayoutDashboard,
+    "/admin/students": Users,
+    "/admin/counsellor": UserCog,
+    "/admin/schedules": CalendarDays,
+  };
+
   const menus = {
     student: [
-      { name: "Dashboard", path: "/student" },git commit -m "Build student dashboard layout"
-      
+      { name: "Dashboard", path: "/student" },
       { name: "My Profile", path: "/student/profile" },
       { name: "Appointments", path: "/student/appointments" },
       { name: "Schedule", path: "/student/schedule" },
     ],
     counsellor: [
       { name: "Dashboard", path: "/counsellor" },
-      { name: "My Schedule", path: "/counsellor/schedule" },
-      { name: "Availability", path: "/counsellor/availability" },
+      { name: "Appointments", path: "/counsellor/appointments" },
+      { name: "Schedule", path: "/counsellor/schedule" },
     ],
     admin: [
       { name: "Dashboard", path: "/admin" },
@@ -22,28 +60,71 @@ const Sidebar = ({ role = "student" }) => {
     ],
   };
 
-  return (
-    <aside className="w-64 bg-blue-900 text-white min-h-screen p-6">
-      <h1 className="text-2xl font-bold mb-8">Helping Hands</h1>
+  const currentMenu = menus[role] || [];
 
-      <nav className="space-y-2">
-        {menus[role].map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `block px-4 py-3 rounded-xl transition ${
-                isActive
-                  ? "bg-white text-blue-900 font-semibold"
-                  : "hover:bg-blue-800"
-              }`
-            }
-          >
-            {item.name}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white p-6 flex flex-col justify-between
+        transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
+        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
+        <div>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-2xl font-bold tracking-tight text-emerald-400">MindCare</h1>
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="p-1 rounded-lg hover:bg-slate-800 lg:hidden text-gray-400 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="space-y-1">
+            {currentMenu.map((item) => {
+              const Icon = menuIcons[item.path] || LayoutDashboard;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === "/student" || item.path === "/counsellor" || item.path === "/admin"}
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium ${
+                      isActive
+                        ? "bg-emerald-500 text-slate-900 shadow-lg shadow-emerald-500/20"
+                        : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+                    }`
+                  }
+                >
+                  <Icon className="w-5 h-5" />
+                  {item.name}
+                </NavLink>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Logout Section */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:bg-slate-800 hover:text-rose-300 transition w-full mt-auto"
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </button>
+      </aside>
+    </>
   );
 };
 
