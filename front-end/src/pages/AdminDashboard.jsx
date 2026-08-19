@@ -373,7 +373,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-100 text-center">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">MindCare Administrator Desk</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Wellness Management System</span>
                 </div>
               </div>
 

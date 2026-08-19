@@ -11,7 +11,8 @@ import {
   XCircle, 
   AlertCircle, 
   HelpCircle,
-  TrendingUp
+  TrendingUp,
+  CalendarCheck
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";

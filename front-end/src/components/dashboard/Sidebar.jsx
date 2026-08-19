@@ -80,7 +80,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
         <div>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-emerald-400">MindCare</h1>
+            <h1 className="text-lg font-bold tracking-tight text-emerald-400 leading-tight">Wellness Management System</h1>
             <button 
               onClick={() => setIsOpen(false)}
               className="p-1 rounded-lg hover:bg-slate-800 lg:hidden text-gray-400 hover:text-white"

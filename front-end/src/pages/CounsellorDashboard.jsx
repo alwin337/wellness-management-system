@@ -10,7 +10,9 @@ import {
   ClipboardList, 
   FileCheck,
   UserCheck,
-  Info
+  Info,
+  Plus,
+  Trash2
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -19,7 +21,7 @@ import { LoadingState, EmptyState, ErrorState } from "../components/dashboard/St
 import Button from "../components/Button";
 
 import { getUserProfile } from "../services/userApi";
-import { getAllSchedules } from "../services/scheduleApi";
+import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
 import { getCounsellorAppointments, updateAppointmentStatus } from "../services/appointmentApi";
 
 const CounsellorDashboard = () => {
@@ -35,6 +37,12 @@ const CounsellorDashboard = () => {
   const [error, setError] = useState(null);
   
   const [updatingId, setUpdatingId] = useState(null);
+
+  // Schedule Form State
+  const [slotDate, setSlotDate] = useState("");
+  const [slotStartTime, setSlotStartTime] = useState("");
+  const [slotEndTime, setSlotEndTime] = useState("");
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   // Fetch counsellor dashboard data
   const fetchData = async () => {
@@ -97,6 +105,57 @@ const CounsellorDashboard = () => {
       toast.error(err.response?.data?.message || "Failed to update status");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  // Counsellor add schedule slot submit
+  const handleAddScheduleSlot = async (e) => {
+    e.preventDefault();
+    if (!slotDate || !slotStartTime || !slotEndTime) {
+      toast.error("Please fill in date and times");
+      return;
+    }
+    if (slotStartTime >= slotEndTime) {
+      toast.error("Start time must be before end time");
+      return;
+    }
+
+    try {
+      setSavingSchedule(true);
+      const payload = {
+        date: slotDate,
+        startTime: slotStartTime,
+        endTime: slotEndTime
+      };
+      await addSchedule(payload);
+      toast.success("Schedule slot created successfully");
+      
+      // Reset form
+      setSlotDate("");
+      setSlotStartTime("");
+      setSlotEndTime("");
+      
+      fetchData();
+    } catch (err) {
+      console.error("Schedule add error:", err);
+      toast.error(err.response?.data?.message || "Failed to add schedule");
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  // Counsellor delete schedule slot
+  const handleDeleteScheduleSlot = async (slotId) => {
+    if (!window.confirm("Are you sure you want to delete this schedule slot?")) {
+      return;
+    }
+
+    try {
+      await deleteSchedule(slotId);
+      toast.success("Schedule slot deleted");
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete schedule slot");
     }
   };
 
@@ -222,7 +281,7 @@ const CounsellorDashboard = () => {
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 text-center">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">MindCare Counselling Portal</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Wellness Management System</span>
                 </div>
               </div>
 
@@ -399,52 +458,129 @@ const CounsellorDashboard = () => {
 
         {/* ------------------- VIEW SCHEDULES TAB ------------------- */}
         {activeTab === "schedule" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <Calendar className="w-5.5 h-5.5 text-emerald-500" />
-              Allocated Counselling Availability Slots
-            </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Create Schedule Form */}
+            <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 self-start">
+              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <Calendar className="w-5.5 h-5.5 text-emerald-500" />
+                Add Availability Slot
+              </h2>
 
-            {schedules.length === 0 ? (
-              <EmptyState 
-                message="No allocated schedules" 
-                subtitle="Contact the system administrator to configure availability slots." 
-              />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {schedules.map((slot) => (
-                  <div key={slot._id} className="border border-slate-100 rounded-2xl p-5 bg-slate-50/50 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div className="bg-white p-2.5 rounded-xl border">
-                        <Calendar className="w-5 h-5 text-emerald-500" />
-                      </div>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                        slot.isAvailable 
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                          : "bg-slate-100 text-slate-500 border-slate-200"
-                      }`}>
-                        {slot.isAvailable ? "Open (Available)" : "Booked / Closed"}
-                      </span>
-                    </div>
+              <form onSubmit={handleAddScheduleSlot} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Schedule Date
+                  </label>
+                  <input
+                    type="date"
+                    value={slotDate}
+                    onChange={(e) => setSlotDate(e.target.value)}
+                    className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 bg-white"
+                  />
+                </div>
 
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-base">
-                        {new Date(slot.date).toLocaleDateString(undefined, {
-                          weekday: "long",
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric"
-                        })}
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        {slot.startTime} - {slot.endTime}
-                      </p>
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={slotStartTime}
+                      onChange={(e) => setSlotStartTime(e.target.value)}
+                      className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 bg-white"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      value={slotEndTime}
+                      onChange={(e) => setSlotEndTime(e.target.value)}
+                      className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={savingSchedule}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:bg-gray-400"
+                  >
+                    <Plus className="w-5.5 h-5.5" />
+                    {savingSchedule ? "Adding slot..." : "Generate Slot"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Allocated Slots list */}
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <Calendar className="w-5.5 h-5.5 text-emerald-500" />
+                Allocated Counselling Availability Slots
+              </h2>
+
+              {schedules.length === 0 ? (
+                <EmptyState 
+                  message="No allocated schedules" 
+                  subtitle="Configure availability slots using the form on the left." 
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {schedules.map((slot) => (
+                    <div key={slot._id} className="border border-slate-100 rounded-2xl p-5 bg-slate-50/50 flex flex-col justify-between space-y-3">
+                      <div>
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="bg-white p-2.5 rounded-xl border">
+                            <Calendar className="w-5 h-5 text-emerald-500" />
+                          </div>
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                            slot.isAvailable 
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                              : "bg-slate-100 text-slate-500 border-slate-200"
+                          }`}>
+                            {slot.isAvailable ? "Open (Available)" : "Booked / Closed"}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-base">
+                            {new Date(slot.date).toLocaleDateString(undefined, {
+                              weekday: "long",
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric"
+                            })}
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            {slot.startTime} - {slot.endTime}
+                          </p>
+                        </div>
+                      </div>
+
+                      {slot.isAvailable && (
+                        <div className="pt-3 border-t border-slate-200/50 flex justify-end">
+                          <button
+                            onClick={() => handleDeleteScheduleSlot(slot._id)}
+                            className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 p-2 rounded-lg transition inline-flex items-center"
+                            title="Delete Slot"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
