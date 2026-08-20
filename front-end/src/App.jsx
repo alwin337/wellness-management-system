@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
 import PublicLayout from "./layouts/PublicLayouts";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -23,10 +24,57 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Dashboard */}
-        <Route path="/student" element={<StudentDashboard />} />
-        <Route path="/counsellor" element={<CounsellorDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        {/* Protected Dashboard Routes */}
+        <Route 
+          path="/student" 
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/student/:tab" 
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/counsellor" 
+          element={
+            <ProtectedRoute allowedRoles={["counsellor"]}>
+              <CounsellorDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/counsellor/:tab" 
+          element={
+            <ProtectedRoute allowedRoles={["counsellor"]}>
+              <CounsellorDashboard />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/:tab" 
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
 
       <ToastContainer

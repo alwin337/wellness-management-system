@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { Eye, EyeOff } from "lucide-react";
 
 const InputField = ({
   label,
@@ -15,13 +15,11 @@ const InputField = ({
 
   return (
     <div>
-
-      <label className="block text-sm font-medium mb-2">
+      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
         {label}
       </label>
 
       <div className="relative">
-
         <input
           type={
             type === "password"
@@ -34,10 +32,10 @@ const InputField = ({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 ${
+          className={`w-full border rounded-xl py-3 px-4 text-[15px] font-medium bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition duration-200 ${
             error
-              ? "border-red-500 focus:ring-red-500"
-              : "border-gray-300 focus:ring-blue-500"
+              ? "border-red-300 focus:ring-red-500"
+              : "border-slate-200 focus:ring-blue-600 focus:border-transparent"
           }`}
         />
 
@@ -45,20 +43,18 @@ const InputField = ({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
           >
-            {showPassword ? <FaEyeSlash /> : <FaEye />}
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         )}
-
       </div>
 
       {error && (
-        <p className="text-red-500 text-sm mt-1">
+        <p className="text-red-500 text-xs font-semibold mt-1">
           {error}
         </p>
       )}
-
     </div>
   );
 };

@@ -18,87 +18,65 @@ const Register = () => {
     confirmPassword: "",
   });
 
-  // Error State
   const [errors, setErrors] = useState({});
 
-  // Handle Input Change
+  // Input Handler
   const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-
-    // Remove error while typing
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      [name]: "",
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+    // Clear field error
+    if (errors[e.target.name]) {
+      setErrors({
+        ...errors,
+        [e.target.name]: "",
+      });
+    }
   };
 
-  // Validate Form
+  // Validation Logic
   const validateForm = () => {
-    let newErrors = {};
+    let tempErrors = {};
+    if (!formData.name.trim()) tempErrors.name = "Full Name is required";
+    if (!formData.email.trim()) tempErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      tempErrors.email = "Invalid email format";
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Full Name is required";
-    }
+    if (!formData.department.trim())
+      tempErrors.department = "Department is required";
+    if (!formData.year.trim()) tempErrors.year = "Year of study is required";
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (
-      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)
-    ) {
-      newErrors.email = "Invalid email address";
-    }
+    if (!formData.password) tempErrors.password = "Password is required";
+    else if (formData.password.length < 6)
+      tempErrors.password = "Password must be at least 6 characters";
 
-    if (!formData.department.trim()) {
-      newErrors.department = "Department is required";
-    }
+    if (!formData.confirmPassword)
+      tempErrors.confirmPassword = "Confirm Password is required";
+    else if (formData.confirmPassword !== formData.password)
+      tempErrors.confirmPassword = "Passwords do not match";
 
-    if (!formData.year.trim()) {
-      newErrors.year = "Year of Study is required";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-
-    return Object.keys(newErrors).length === 0;
+    setErrors(tempErrors);
+    return Object.keys(tempErrors).length === 0;
   };
 
-  // Handle Form Submit
+  // Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      toast.error("Please fix the errors before submitting.");
-      return;
-    }
+    if (!validateForm()) return;
 
-    try{
-      const { confirmPassword, ...userData } = formData;
+    try {
+      await registerUser({
+        name: formData.name,
+        email: formData.email,
+        department: formData.department,
+        year: formData.year,
+        password: formData.password,
+      });
 
-      const response = await registerUser(userData);
-
-      toast.success(
-        response.data.message || "Registration Successful!"
-      );
-      
-      console.log(response.data);
-    
-      // Clear the form after successful registration
+      toast.success("Registration successful! Please log in.");
+      // Reset form
       setFormData({
         name: "",
         email: "",
@@ -112,96 +90,106 @@ const Register = () => {
         error.response?.data?.message || "Registration failed"
       );
     }
-
   };
 
   return (
     <AuthLayout>
-      <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-center text-blue-700">
-          Counselling Cell Portal
-        </h1>
-
-        <p className="text-center text-gray-500 mt-2">
-          Create Your Account
-        </p>
+      <div className="w-full max-w-xl bg-white border border-slate-200/80 rounded-2xl p-8 sm:p-10 shadow-sm z-20">
+        <div className="text-center space-y-2 mb-6">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Counselling Cell Portal
+          </h1>
+          <p className="text-sm text-slate-500 font-medium">
+            Create Your Account
+          </p>
+        </div>
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 mt-8"
+          className="space-y-4"
         >
-          <InputField
-            label="Full Name"
-            type="text"
-            name="name"
-            placeholder="Enter your full name"
-            value={formData.name}
-            onChange={handleChange}
-            error={errors.name}
-          />
+          {/* Grid 1: Name and Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <InputField
+              label="Full Name"
+              type="text"
+              name="name"
+              placeholder="Enter your full name"
+              value={formData.name}
+              onChange={handleChange}
+              error={errors.name}
+            />
 
-          <InputField
-            label="Email"
-            type="email"
-            name="email"
-            placeholder="Enter your email"
-            value={formData.email}
-            onChange={handleChange}
-            error={errors.email}
-          />
+            <InputField
+              label="Email"
+              type="email"
+              name="email"
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
+              error={errors.email}
+            />
+          </div>
 
-          <InputField
-            label="Department"
-            type="text"
-            name="department"
-            placeholder="Enter your department"
-            value={formData.department}
-            onChange={handleChange}
-            error={errors.department}
-          />
+          {/* Grid 2: Dept and Year */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <InputField
+              label="Department"
+              type="text"
+              name="department"
+              placeholder="Enter your department"
+              value={formData.department}
+              onChange={handleChange}
+              error={errors.department}
+            />
 
-          <InputField
-            label="Year of Study"
-            type="text"
-            name="year"
-            placeholder="Enter your year of study"
-            value={formData.year}
-            onChange={handleChange}
-            error={errors.year}
-          />
+            <InputField
+              label="Year of Study"
+              type="text"
+              name="year"
+              placeholder="Enter your year of study"
+              value={formData.year}
+              onChange={handleChange}
+              error={errors.year}
+            />
+          </div>
 
-          <InputField
-            label="Password"
-            type="password"
-            name="password"
-            placeholder="Enter your password"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-          />
+          {/* Grid 3: Passwords */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <InputField
+              label="Password"
+              type="password"
+              name="password"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
+              error={errors.password}
+            />
 
-          <InputField
-            label="Confirm Password"
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm your password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            error={errors.confirmPassword}
-          />
+            <InputField
+              label="Confirm Password"
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirm your password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              error={errors.confirmPassword}
+            />
+          </div>
 
-          <Button
-            text="Create Account"
-            type="submit"
-          />
+          <div className="pt-2">
+            <Button
+              text="Create Account"
+              type="submit"
+            />
+          </div>
         </form>
 
-        <p className="text-center mt-6">
+        <p className="text-center text-sm text-slate-600 mt-6">
           Already have an account?
-
           <Link
             to="/login"
-            className="text-blue-600 ml-2 hover:underline"
+            className="text-blue-600 ml-1.5 font-semibold hover:text-blue-700 hover:underline transition-colors"
           >
             Login
           </Link>

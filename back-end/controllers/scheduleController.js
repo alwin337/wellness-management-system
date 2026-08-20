@@ -8,12 +8,20 @@ const Counsellor = require("../models/Counsellor");
 
 const addSchedule = async (req, res) => {
   try {
-    const {
+    let {
       counsellor,
       date,
       startTime,
       endTime,
     } = req.body;
+
+    // If counsellor ID is not in body, resolve it if user is a counsellor
+    if (!counsellor && req.user && req.user.role === 'counsellor') {
+      const counsellorDoc = await Counsellor.findOne({ user: req.user._id });
+      if (counsellorDoc) {
+        counsellor = counsellorDoc._id;
+      }
+    }
 
     // Check required fields
     if (
