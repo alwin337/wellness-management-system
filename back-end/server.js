@@ -8,6 +8,8 @@ const userRoutes = require('./routes/userRouter')
 const counsellorRoutes = require('./routes/counsellorRouter')
 const scheduleRoutes = require('./routes/scheduleRouter')
 const appointmentRoutes = require('./routes/appointmentRoutes')
+const statisticsRoutes = require('./routes/statisticsRoutes')
+const resourceRoutes = require('./routes/resourceRoutes')
 
 dotenv.config();
 
@@ -48,6 +50,16 @@ app.use(
   "/api/appointments",
   appointmentRoutes
 )
+
+//admin statistics
+app.use(
+  "/api/statistics",statisticsRoutes
+)
+
+app.use(
+  "/api/resources",resourceRoutes
+)
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
