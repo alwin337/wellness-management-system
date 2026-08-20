@@ -106,17 +106,13 @@ export default function Navbar() {
           </Link>
 
           <Link
-            to="/Resources"
+            to="/resources"
             className="
-              flex
-              items-center
-              gap-1
               hover:text-[#7cb342]
               transition-colors
             "
           >
             Resources
-            <span className="text-xs">▼</span>
           </Link>
 
           <div className="relative font-sans" ref={dropdownRef}>
@@ -268,24 +264,17 @@ export default function Navbar() {
 
 
             <Link
-              to="/services"
+              to="/resources"
               onClick={closeMenu}
               className="
                 px-5
                 py-4
-                flex
-                justify-between
-                items-center
                 hover:bg-[#e9eddf]
                 hover:text-[#7cb342]
                 transition-colors
               "
             >
-              Services
-
-              <span className="text-xs">
-                ▼
-              </span>
+              Resources
             </Link>
 
 

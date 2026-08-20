@@ -7,6 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Resources from "./pages/Resources";
 import StudentDashboard from "./pages/StudentDashboard";
 import CounsellorDashboard from "./pages/CounsellorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -18,6 +19,7 @@ function App() {
         {/* Public Pages */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/resources" element={<Resources />} />
         </Route>
 
         {/* Authentication */}
