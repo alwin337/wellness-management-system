@@ -11,6 +11,7 @@ const appointmentRoutes = require('./routes/appointmentRoutes')
 const statisticsRoutes = require('./routes/statisticsRoutes')
 const resourceRoutes = require('./routes/resourceRoutes')
 const sessionRoutes = require('./routes/sessionRouter')
+const reviewRoutes = require('./routes/reviewRouter')
 
 dotenv.config();
 
@@ -63,6 +64,11 @@ app.use(
 
 app.use(
   "/api/sessions",sessionRoutes
+)
+
+app.use(
+  "/api/reviews",
+  reviewRoutes
 )
 
 const PORT = process.env.PORT || 5000;
