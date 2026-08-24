@@ -12,6 +12,7 @@ const statisticsRoutes = require('./routes/statisticsRoutes')
 const resourceRoutes = require('./routes/resourceRoutes')
 const sessionRoutes = require('./routes/sessionRouter')
 const reviewRoutes = require('./routes/reviewRouter')
+const FacilityRequestRoutes = require("./routes/facilityrequestRouter")
 
 dotenv.config();
 
@@ -71,6 +72,11 @@ app.use(
   reviewRoutes
 )
 
+
+app.use(
+  "/api/requests",
+  FacilityRequestRoutes
+)
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
