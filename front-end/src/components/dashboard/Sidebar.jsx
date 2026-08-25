@@ -7,6 +7,7 @@ import {
   CalendarDays, 
   Users, 
   UserCog, 
+  History,
   LogOut,
   X 
 } from "lucide-react";
@@ -32,6 +33,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/counsellor": LayoutDashboard,
     "/counsellor/appointments": CalendarCheck,
     "/counsellor/schedule": CalendarDays,
+    "/counsellor/sessions": History,
     
     // Admin links
     "/admin": LayoutDashboard,
@@ -50,6 +52,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     counsellor: [
       { name: "Dashboard", path: "/counsellor" },
       { name: "Appointments", path: "/counsellor/appointments" },
+      { name: "Session History", path: "/counsellor/sessions" },
       { name: "Schedule", path: "/counsellor/schedule" },
     ],
     admin: [
