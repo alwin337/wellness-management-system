@@ -1,14 +1,29 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { Eye, Loader2 } from "lucide-react";
+import {
+  Eye,
+  Loader2,
+  X,
+  MessageSquare,
+} from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
-import { getMySessions } from "../services/sessionApi";
+import {
+  getMySessions,
+  getSession,
+  sendFeedback,
+} from "../services/sessionApi";
 
 const CounsellorSessions = () => {
   const [sessions, setSessions] = useState([]);
   const [totalSessions, setTotalSessions] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const [feedback, setFeedback] = useState("");
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   const fetchSessions = async () => {
     try {
@@ -34,6 +49,62 @@ const CounsellorSessions = () => {
     fetchSessions();
   }, []);
 
+  const handleViewSession = async (sessionId) => {
+    try {
+      setDetailsLoading(true);
+
+      const response = await getSession(sessionId);
+
+      setSelectedSession(response.data.session);
+
+      setFeedback(response.data.session?.feedback || "");
+    } catch (error) {
+      console.error("Error fetching session:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to load session details"
+      );
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleSendFeedback = async () => {
+    if (!feedback.trim()) {
+      toast.error("Please enter feedback");
+      return;
+    }
+
+    try {
+      setFeedbackLoading(true);
+
+      await sendFeedback(
+        selectedSession._id,
+        feedback.trim()
+      );
+
+      toast.success("Feedback sent successfully");
+
+      setSelectedSession((prev) => ({
+        ...prev,
+        feedback: feedback.trim(),
+        feedbackSent: true,
+      }));
+
+      await fetchSessions();
+    } catch (error) {
+      console.error("Error sending feedback:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to send feedback"
+      );
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   const formatDate = (date) => {
     if (!date) return "N/A";
 
@@ -55,7 +126,8 @@ const CounsellorSessions = () => {
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            View your completed counselling sessions.
+            View completed counselling sessions and provide
+            feedback.
           </p>
         </div>
 
@@ -70,12 +142,12 @@ const CounsellorSessions = () => {
           </p>
         </div>
 
-        {/* Sessions */}
+        {/* Session Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 
           <div className="px-6 py-4 border-b border-slate-200">
             <h2 className="font-semibold text-slate-800">
-              Sessions
+              Completed Sessions
             </h2>
           </div>
 
@@ -84,7 +156,7 @@ const CounsellorSessions = () => {
               <Loader2 className="w-7 h-7 animate-spin text-emerald-500" />
             </div>
           ) : sessions.length === 0 ? (
-            <div className="text-center py-12 px-6">
+            <div className="text-center py-12">
               <p className="text-slate-500">
                 No sessions found.
               </p>
@@ -109,7 +181,7 @@ const CounsellorSessions = () => {
                     </th>
 
                     <th className="text-left px-6 py-4 font-semibold text-slate-600">
-                      Session Date
+                      Date
                     </th>
 
                     <th className="text-left px-6 py-4 font-semibold text-slate-600">
@@ -125,17 +197,14 @@ const CounsellorSessions = () => {
                       key={session._id}
                       className="hover:bg-slate-50 transition"
                     >
-
                       <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-slate-800">
-                            {session.userId?.name || "N/A"}
-                          </p>
+                        <p className="font-medium text-slate-800">
+                          {session.userId?.name || "N/A"}
+                        </p>
 
-                          <p className="text-xs text-slate-500">
-                            {session.userId?.email || ""}
-                          </p>
-                        </div>
+                        <p className="text-xs text-slate-500">
+                          {session.userId?.email || ""}
+                        </p>
                       </td>
 
                       <td className="px-6 py-4 text-slate-600">
@@ -153,24 +222,173 @@ const CounsellorSessions = () => {
                       <td className="px-6 py-4">
                         <button
                           type="button"
+                          onClick={() =>
+                            handleViewSession(session._id)
+                          }
                           className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
                         >
                           <Eye className="w-4 h-4" />
                           View
                         </button>
                       </td>
-
                     </tr>
                   ))}
 
                 </tbody>
-
               </table>
             </div>
           )}
-
         </div>
       </div>
+
+      {/* Session Details Modal */}
+      {selectedSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl">
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Session Details
+                </h2>
+
+                <p className="text-sm text-slate-500 mt-1">
+                  {selectedSession.userId?.name || "Student"}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedSession(null);
+                  setFeedback("");
+                }}
+                className="p-2 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Details */}
+            <div className="p-6 space-y-5">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Student
+                  </p>
+
+                  <p className="font-medium text-slate-800">
+                    {selectedSession.userId?.name || "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Email
+                  </p>
+
+                  <p className="font-medium text-slate-800">
+                    {selectedSession.userId?.email || "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Department
+                  </p>
+
+                  <p className="font-medium text-slate-800">
+                    {selectedSession.userId?.department || "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Session Date
+                  </p>
+
+                  <p className="font-medium text-slate-800">
+                    {formatDate(selectedSession.sessionDate)}
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Reason */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1">
+                  Reason
+                </p>
+
+                <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700">
+                  {selectedSession.reason || "No reason provided."}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1">
+                  Session Notes
+                </p>
+
+                <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 whitespace-pre-wrap">
+                  {selectedSession.notes || "No notes available."}
+                </div>
+              </div>
+
+              {/* Feedback */}
+              <div className="border-t pt-5">
+
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="w-5 h-5 text-emerald-600" />
+
+                  <h3 className="font-semibold text-slate-800">
+                    Feedback
+                  </h3>
+                </div>
+
+                <textarea
+                  value={feedback}
+                  onChange={(e) =>
+                    setFeedback(e.target.value)
+                  }
+                  placeholder="Enter feedback for the student..."
+                  rows={4}
+                  className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+
+                <button
+                  onClick={handleSendFeedback}
+                  disabled={feedbackLoading}
+                  className="mt-3 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition"
+                >
+                  {feedbackLoading
+                    ? "Sending..."
+                    : "Send Feedback"}
+                </button>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading overlay while fetching details */}
+      {detailsLoading && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-xl px-6 py-4 shadow-lg flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+            <span className="text-sm text-slate-700">
+              Loading session...
+            </span>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };
