@@ -13,6 +13,7 @@ const resourceRoutes = require('./routes/resourceRoutes')
 const sessionRoutes = require('./routes/sessionRouter')
 const reviewRoutes = require('./routes/reviewRouter')
 const FacilityRequestRoutes = require("./routes/facilityrequestRouter")
+const assessmentRoutes = require("./routes/assessmentRouter")
 
 dotenv.config();
 
@@ -76,6 +77,11 @@ app.use(
 app.use(
   "/api/requests",
   FacilityRequestRoutes
+)
+
+app.use(
+  "/api/assessments",
+  assessmentRoutes
 )
 const PORT = process.env.PORT || 5000;
 
