@@ -11,6 +11,7 @@ import Resources from "./pages/Resources";
 import StudentDashboard from "./pages/StudentDashboard";
 import CounsellorDashboard from "./pages/CounsellorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import CounsellorSessions from "./pages/CounsellorSessions";
 
 function App() {
   return (
@@ -26,56 +27,72 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected Dashboard Routes */}
-        <Route 
-          path="/student" 
+        {/* Student Dashboard */}
+        <Route
+          path="/student"
           element={
             <ProtectedRoute allowedRoles={["student"]}>
               <StudentDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/student/:tab" 
+
+        <Route
+          path="/student/:tab"
           element={
             <ProtectedRoute allowedRoles={["student"]}>
               <StudentDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-          path="/counsellor" 
+        {/* Counsellor Dashboard */}
+        <Route
+          path="/counsellor"
           element={
             <ProtectedRoute allowedRoles={["counsellor"]}>
               <CounsellorDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/counsellor/:tab" 
+
+        {/* Counsellor Session History */}
+        <Route
+          path="/counsellor/sessions"
+          element={
+            <ProtectedRoute allowedRoles={["counsellor"]}>
+              <CounsellorSessions />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Other Counsellor Tabs */}
+        <Route
+          path="/counsellor/:tab"
           element={
             <ProtectedRoute allowedRoles={["counsellor"]}>
               <CounsellorDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-          path="/admin" 
+        {/* Admin Dashboard */}
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/:tab" 
+
+        <Route
+          path="/admin/:tab"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
       </Routes>
 
