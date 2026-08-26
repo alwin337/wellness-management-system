@@ -13,6 +13,7 @@ import {
 import {
   getMySessions,
   getPastAppointments,
+  getSession,
   sendFeedback,
 } from "../services/sessionApi";
 
@@ -23,6 +24,8 @@ const CounsellorSessions = () => {
   const [loading, setLoading] = useState(true);
 
   const [selectedSession, setSelectedSession] = useState(null);
+  const [sessionDetailsLoading, setSessionDetailsLoading] = useState(false);
+  const [viewingSession, setViewingSession] = useState(null);
   const [feedback, setFeedback] = useState("");
   const [sendingFeedback, setSendingFeedback] = useState(false);
 
@@ -55,6 +58,24 @@ const CounsellorSessions = () => {
       setLoading(false);
     }
   };
+
+  const handleViewSession = async (sessionId) => {
+  try {
+    setSessionDetailsLoading(true);
+
+    const response = await getSession(sessionId);
+
+    setViewingSession(response.data.session);
+  } catch (error) {
+    console.error("Error fetching session:", error);
+
+    toast.error(
+      error.response?.data?.message || "Failed to load session details"
+    );
+  } finally {
+    setSessionDetailsLoading(false);
+  }
+};
 
   const handleFeedback = async () => {
     if (!selectedSession) return;
@@ -175,6 +196,15 @@ const CounsellorSessions = () => {
                 key={session._id}
                 className="p-6 hover:bg-slate-50 transition"
               >
+                <button 
+                  type="button"
+                  onClick={() => handleViewSession(session._id)}
+                  className="mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition"
+    
+                >
+                  View Details
+
+                </button>
 
                 {/* Student information */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -386,6 +416,158 @@ const CounsellorSessions = () => {
 
         </div>
       )}
+      {/* Session Details Modal */}
+{viewingSession && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">
+            Session Details
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Counselling session information
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setViewingSession(null)}
+          className="text-slate-400 hover:text-slate-700 text-2xl"
+        >
+          ×
+        </button>
+      </div>
+
+      {sessionDetailsLoading ? (
+        <div className="p-8 text-center text-slate-500">
+          Loading session details...
+        </div>
+      ) : (
+        <div className="p-6 space-y-6">
+
+          {/* Student */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase">
+              Student
+            </h3>
+
+            <div className="mt-2 rounded-xl bg-slate-50 p-4">
+              <p className="font-semibold text-slate-900">
+                {viewingSession.userId?.name || "N/A"}
+              </p>
+
+              <p className="text-sm text-slate-600">
+                {viewingSession.userId?.email || "N/A"}
+              </p>
+
+              <p className="text-sm text-slate-600">
+                Department:{" "}
+                {viewingSession.userId?.department || "N/A"}
+              </p>
+            </div>
+          </div>
+
+          {/* Appointment */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase">
+              Appointment
+            </h3>
+
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs text-slate-500">
+                  Date
+                </p>
+
+                <p className="font-medium text-slate-900 mt-1">
+                  {viewingSession.appointmentId?.appointmentDate
+                    ? new Date(
+                        viewingSession.appointmentId.appointmentDate
+                      ).toLocaleDateString()
+                    : "N/A"}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs text-slate-500">
+                  Time
+                </p>
+
+                <p className="font-medium text-slate-900 mt-1">
+                  {viewingSession.appointmentId?.startTime || "N/A"}
+                  {" - "}
+                  {viewingSession.appointmentId?.endTime || "N/A"}
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Reason */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase">
+              Reason
+            </h3>
+
+            <p className="mt-2 rounded-xl bg-slate-50 p-4 text-slate-700">
+              {viewingSession.reason || "No reason provided"}
+            </p>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase">
+              Session Notes
+            </h3>
+
+            <p className="mt-2 rounded-xl bg-slate-50 p-4 text-slate-700 whitespace-pre-wrap">
+              {viewingSession.notes || "No notes available"}
+            </p>
+          </div>
+
+          {/* Session Date */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase">
+              Session Date
+            </h3>
+
+            <p className="mt-2 text-slate-700">
+              {viewingSession.sessionDate
+                ? new Date(
+                    viewingSession.sessionDate
+                  ).toLocaleString()
+                : "N/A"}
+            </p>
+          </div>
+
+          {/* Feedback */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase">
+              Feedback
+            </h3>
+
+            <div className="mt-2 rounded-xl bg-slate-50 p-4">
+              {viewingSession.feedbackSent ? (
+                <p className="text-slate-700 whitespace-pre-wrap">
+                  {viewingSession.feedback || "Feedback sent"}
+                </p>
+              ) : (
+                <p className="text-slate-500">
+                  Feedback has not been sent yet.
+                </p>
+              )}
+            </div>
+          </div>
+
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
     </div>
   );

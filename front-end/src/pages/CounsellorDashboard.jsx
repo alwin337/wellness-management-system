@@ -655,7 +655,7 @@ const CounsellorDashboard = () => {
                 }}
                 className="text-slate-400 hover:text-slate-700 text-xl"
               >
-                ×
+                <X className="w-5 h-5" />
               </button>
             </div>
 
