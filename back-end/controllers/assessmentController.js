@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const Assessment = require(
   "../models/Assessment"
 );
@@ -12,34 +14,26 @@ const {
   "../services/assessmentScoringService"
 );
 
-
-// GET ALL ASSESSMENTS
-// GET /api/assessments
-// STUDENT
-
+// Get all active assessments
 const getAssessments = async (
   req,
   res
 ) => {
-
   try {
-
     const assessments =
       await Assessment.find({
         isActive: true,
       }).select(
-        "title category description instructions questions scoring.type scoring.maxScore"
+        "title category instrument description instructions questions scoring.method scoring.maxScore scoring.responseMin scoring.responseMax"
       );
 
     res.status(200).json({
       count: assessments.length,
       assessments,
     });
-
   } catch (error) {
-
     console.error(
-      "GET ASSESSMENTS:",
+      "GET ASSESSMENTS ERROR:",
       error.message
     );
 
@@ -51,17 +45,22 @@ const getAssessments = async (
   }
 };
 
-
-// GET SINGLE ASSESSMENT
-// GET /api/assessments/:id
-
-
+// Get one assessment
 const getAssessment = async (
   req,
   res
 ) => {
-
   try {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Invalid assessment ID",
+      });
+    }
 
     const assessment =
       await Assessment.findById(
@@ -85,11 +84,9 @@ const getAssessment = async (
     res.status(200).json({
       assessment,
     });
-
   } catch (error) {
-
     console.error(
-      "GET ASSESSMENT:",
+      "GET ASSESSMENT ERROR:",
       error.message
     );
 
@@ -101,23 +98,13 @@ const getAssessment = async (
   }
 };
 
-
-// SUBMIT ASSESSMENT
-// POST /api/assessments/:id/submit
-
+// Submit assessment
 const submitAssessment = async (
   req,
   res
 ) => {
-
   try {
-
-    const {
-      answers,
-    } = req.body;
-
-    // Validate request
-    
+    const { answers } = req.body;
 
     if (
       !answers ||
@@ -129,9 +116,17 @@ const submitAssessment = async (
       });
     }
 
-    
-    // Find assessment
-   
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Invalid assessment ID",
+      });
+    }
+
     const assessment =
       await Assessment.findById(
         req.params.id
@@ -151,7 +146,7 @@ const submitAssessment = async (
       });
     }
 
-    // Calculate score
+    // Calculate result
     const result =
       calculateAssessmentScore(
         assessment,
@@ -159,18 +154,24 @@ const submitAssessment = async (
       );
 
     // Save result
-
     const savedResult =
       await AssessmentResult.create({
-
-        userId:
-          req.user._id,
+        userId: req.user._id,
 
         assessmentId:
           assessment._id,
 
+        instrumentName:
+          assessment.instrument.name,
+
+        instrumentVersion:
+          assessment.instrument.version,
+
         answers:
           result.answers,
+
+        rawScore:
+          result.rawScore,
 
         totalScore:
           result.totalScore,
@@ -191,10 +192,7 @@ const submitAssessment = async (
           result.recommendation,
       });
 
-    // Response
-
     res.status(201).json({
-
       message:
         "Assessment completed successfully",
 
@@ -207,6 +205,12 @@ const submitAssessment = async (
 
         category:
           assessment.category,
+
+        instrument:
+          assessment.instrument.name,
+
+        version:
+          assessment.instrument.version,
 
         score:
           result.totalScore,
@@ -230,11 +234,9 @@ const submitAssessment = async (
           savedResult.createdAt,
       },
     });
-
   } catch (error) {
-
     console.error(
-      "SUBMIT ASSESSMENT:",
+      "SUBMIT ASSESSMENT ERROR:",
       error.message
     );
 
@@ -246,24 +248,19 @@ const submitAssessment = async (
   }
 };
 
-
-// GET MY RESULTS
-// GET /api/assessments/my-results
-
+// Get student's assessment history
 const getMyResults = async (
   req,
   res
 ) => {
-
   try {
-
     const results =
       await AssessmentResult.find({
         userId: req.user._id,
       })
         .populate(
           "assessmentId",
-          "title category"
+          "title category instrument"
         )
         .sort({
           createdAt: -1,
@@ -273,11 +270,9 @@ const getMyResults = async (
       count: results.length,
       results,
     });
-
   } catch (error) {
-
     console.error(
-      "GET MY RESULTS:",
+      "GET RESULTS ERROR:",
       error.message
     );
 
@@ -289,26 +284,31 @@ const getMyResults = async (
   }
 };
 
-
-// GET ONE RESULT
-// GET /api/assessments/results/:id
-
+// Get one student's result
 const getMyResult = async (
   req,
   res
 ) => {
-
   try {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Invalid result ID",
+      });
+    }
 
     const result =
       await AssessmentResult.findOne({
         _id: req.params.id,
         userId: req.user._id,
-      })
-        .populate(
-          "assessmentId",
-          "title category description"
-        );
+      }).populate(
+        "assessmentId",
+        "title category instrument description"
+      );
 
     if (!result) {
       return res.status(404).json({
@@ -320,11 +320,9 @@ const getMyResult = async (
     res.status(200).json({
       result,
     });
-
   } catch (error) {
-
     console.error(
-      "GET RESULT:",
+      "GET RESULT ERROR:",
       error.message
     );
 
@@ -336,20 +334,16 @@ const getMyResult = async (
   }
 };
 
-
-// ADMIN CREATE ASSESSMENT
-// ADMIN
-
+// Admin creates assessment
 const createAssessment = async (
   req,
   res
 ) => {
-
   try {
-
     const {
       title,
       category,
+      instrument,
       description,
       instructions,
       questions,
@@ -359,12 +353,14 @@ const createAssessment = async (
     if (
       !title ||
       !category ||
+      !instrument ||
+      !instrument.name ||
       !questions ||
       !scoring
     ) {
       return res.status(400).json({
         message:
-          "Title, category, questions and scoring are required",
+          "Title, category, instrument, questions and scoring are required",
       });
     }
 
@@ -372,6 +368,7 @@ const createAssessment = async (
       await Assessment.create({
         title,
         category,
+        instrument,
         description,
         instructions,
         questions,
@@ -381,13 +378,12 @@ const createAssessment = async (
     res.status(201).json({
       message:
         "Assessment created successfully",
+
       assessment,
     });
-
   } catch (error) {
-
     console.error(
-      "CREATE ASSESSMENT:",
+      "CREATE ASSESSMENT ERROR:",
       error.message
     );
 
@@ -399,16 +395,22 @@ const createAssessment = async (
   }
 };
 
-
-// ADMIN UPDATE ASSESSMENT
-
-
+// Admin updates assessment
 const updateAssessment = async (
   req,
   res
 ) => {
-
   try {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Invalid assessment ID",
+      });
+    }
 
     const assessment =
       await Assessment.findById(
@@ -425,6 +427,7 @@ const updateAssessment = async (
     const allowedFields = [
       "title",
       "category",
+      "instrument",
       "description",
       "instructions",
       "questions",
@@ -434,7 +437,6 @@ const updateAssessment = async (
 
     allowedFields.forEach(
       (field) => {
-
         if (
           req.body[field] !==
           undefined
@@ -442,7 +444,6 @@ const updateAssessment = async (
           assessment[field] =
             req.body[field];
         }
-
       }
     );
 
@@ -451,10 +452,14 @@ const updateAssessment = async (
     res.status(200).json({
       message:
         "Assessment updated successfully",
+
       assessment,
     });
-
   } catch (error) {
+    console.error(
+      "UPDATE ASSESSMENT ERROR:",
+      error.message
+    );
 
     res.status(400).json({
       message:
@@ -464,15 +469,22 @@ const updateAssessment = async (
   }
 };
 
-
-// ADMIN DELETE/DEACTIVATE ASSESSMENT
-
+// Admin deactivates assessment
 const deleteAssessment = async (
   req,
   res
 ) => {
-
   try {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Invalid assessment ID",
+      });
+    }
 
     const assessment =
       await Assessment.findById(
@@ -486,7 +498,6 @@ const deleteAssessment = async (
       });
     }
 
-    // Soft delete
     assessment.isActive = false;
 
     await assessment.save();
@@ -495,8 +506,11 @@ const deleteAssessment = async (
       message:
         "Assessment deactivated successfully",
     });
-
   } catch (error) {
+    console.error(
+      "DELETE ASSESSMENT ERROR:",
+      error.message
+    );
 
     res.status(500).json({
       message:
@@ -505,7 +519,6 @@ const deleteAssessment = async (
     });
   }
 };
-
 
 module.exports = {
   getAssessments,

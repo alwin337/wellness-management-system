@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+// Answer option
 const optionSchema = new mongoose.Schema(
   {
     label: {
@@ -11,7 +12,6 @@ const optionSchema = new mongoose.Schema(
     score: {
       type: Number,
       required: true,
-      min: 0,
     },
   },
   {
@@ -19,10 +19,16 @@ const optionSchema = new mongoose.Schema(
   }
 );
 
+// Assessment question
 const questionSchema = new mongoose.Schema(
   {
     questionId: {
       type: String,
+      required: true,
+    },
+
+    order: {
+      type: Number,
       required: true,
     },
 
@@ -42,13 +48,9 @@ const questionSchema = new mongoose.Schema(
   }
 );
 
-const levelSchema = new mongoose.Schema(
+// Result interpretation
+const interpretationSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-    },
-
     min: {
       type: Number,
       required: true,
@@ -59,12 +61,20 @@ const levelSchema = new mongoose.Schema(
       required: true,
     },
 
+    level: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
     description: {
       type: String,
+      trim: true,
     },
 
     recommendation: {
       type: String,
+      trim: true,
     },
   },
   {
@@ -72,6 +82,7 @@ const levelSchema = new mongoose.Schema(
   }
 );
 
+// Assessment
 const assessmentSchema = new mongoose.Schema(
   {
     title: {
@@ -93,6 +104,19 @@ const assessmentSchema = new mongoose.Schema(
       required: true,
     },
 
+    instrument: {
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+
+      version: {
+        type: String,
+        trim: true,
+      },
+    },
+
     description: {
       type: String,
       trim: true,
@@ -106,17 +130,28 @@ const assessmentSchema = new mongoose.Schema(
     questions: {
       type: [questionSchema],
       required: true,
+
+      validate: {
+        validator: function (questions) {
+          return questions.length > 0;
+        },
+
+        message:
+          "Assessment must contain at least one question",
+      },
     },
 
     scoring: {
-      type: {
+      method: {
         type: String,
+
         enum: [
           "sum",
-          "percentage",
-          "validated",
+          "reverse_sum",
+          "who5",
         ],
-        default: "sum",
+
+        required: true,
       },
 
       multiplier: {
@@ -129,9 +164,24 @@ const assessmentSchema = new mongoose.Schema(
         required: true,
       },
 
-      levels: {
-        type: [levelSchema],
+      reverseScoredQuestions: {
+        type: [String],
+        default: [],
+      },
+
+      responseMin: {
+        type: Number,
         required: true,
+      },
+
+      responseMax: {
+        type: Number,
+        required: true,
+      },
+
+      interpretations: {
+        type: [interpretationSchema],
+        default: [],
       },
     },
 
