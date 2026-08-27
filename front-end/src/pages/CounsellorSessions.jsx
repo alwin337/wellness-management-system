@@ -227,6 +227,14 @@ const handleViewStudentHistory = async (studentId) => {
 
                 </button>
 
+                <button
+                  type="button"
+                  onClick={() => handleViewStudentHistory(session.userId?._id)}
+                  className="mt-4 ml-2 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
+                >
+                  Student History
+                </button>
+
                 {/* Student information */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
@@ -586,6 +594,152 @@ const handleViewStudentHistory = async (studentId) => {
 
         </div>
       )}
+    </div>
+  </div>
+)}
+
+{/* Student Session History Modal */}
+{viewingStudentHistory && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">
+            Student Session History
+          </h2>
+
+          <p className="text-sm text-slate-500 mt-1">
+            Previous counselling sessions
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setViewingStudentHistory(null)}
+          className="text-slate-400 hover:text-slate-700 text-2xl"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="p-6 space-y-6">
+
+        {/* Student Information */}
+        <div>
+          <h3 className="text-sm font-semibold text-slate-500 uppercase">
+            Student
+          </h3>
+
+          <div className="mt-2 rounded-xl bg-slate-50 p-4">
+            <p className="font-semibold text-slate-900">
+              {viewingStudentHistory.student?.name || "N/A"}
+            </p>
+
+            <p className="text-sm text-slate-600">
+              {viewingStudentHistory.student?.email || "N/A"}
+            </p>
+
+            <p className="text-sm text-slate-600">
+              Department:{" "}
+              {viewingStudentHistory.student?.department || "N/A"}
+            </p>
+          </div>
+        </div>
+
+        {/* Total Sessions */}
+        <div className="rounded-xl bg-slate-50 p-4">
+          <p className="text-sm text-slate-500">
+            Total Sessions
+          </p>
+
+          <p className="text-2xl font-bold text-slate-900 mt-1">
+            {viewingStudentHistory.totalSessions ?? 0}
+          </p>
+        </div>
+
+        {/* Session History */}
+        <div>
+          <h3 className="text-sm font-semibold text-slate-500 uppercase">
+            Session History
+          </h3>
+
+          <div className="mt-3 space-y-3">
+
+            {viewingStudentHistory.sessions?.length > 0 ? (
+              viewingStudentHistory.sessions.map((historySession) => (
+                <div
+                  key={historySession._id}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        {historySession.reason || "Counselling Session"}
+                      </p>
+
+                      <p className="text-sm text-slate-500 mt-1">
+                        Session Date:{" "}
+                        {historySession.sessionDate
+                          ? new Date(
+                              historySession.sessionDate
+                            ).toLocaleString()
+                          : "N/A"}
+                      </p>
+                    </div>
+
+                    <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      {historySession.appointmentId?.status || "N/A"}
+                    </span>
+
+                  </div>
+
+                  {/* Appointment Details */}
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    <div className="rounded-lg bg-slate-50 p-3">
+                      <p className="text-xs text-slate-500">
+                        Appointment Date
+                      </p>
+
+                      <p className="text-sm font-medium text-slate-800 mt-1">
+                        {historySession.appointmentId?.appointmentDate
+                          ? new Date(
+                              historySession.appointmentId.appointmentDate
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-slate-50 p-3">
+                      <p className="text-xs text-slate-500">
+                        Time
+                      </p>
+
+                      <p className="text-sm font-medium text-slate-800 mt-1">
+                        {historySession.appointmentId?.startTime || "N/A"}
+                        {" - "}
+                        {historySession.appointmentId?.endTime || "N/A"}
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl bg-slate-50 p-6 text-center">
+                <p className="text-slate-500">
+                  No previous sessions found for this student.
+                </p>
+              </div>
+            )}
+
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 )}
