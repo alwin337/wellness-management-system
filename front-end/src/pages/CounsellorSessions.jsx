@@ -14,6 +14,7 @@ import {
   getMySessions,
   getPastAppointments,
   getSession,
+  getStudentSessionHistory,
   sendFeedback,
 } from "../services/sessionApi";
 
@@ -26,6 +27,7 @@ const CounsellorSessions = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionDetailsLoading, setSessionDetailsLoading] = useState(false);
   const [viewingSession, setViewingSession] = useState(null);
+  const [viewingStudentHistory, setViewingStudentHistory] = useState(null);
   const [feedback, setFeedback] = useState("");
   const [sendingFeedback, setSendingFeedback] = useState(false);
 
@@ -71,6 +73,25 @@ const CounsellorSessions = () => {
 
     toast.error(
       error.response?.data?.message || "Failed to load session details"
+    );
+  } finally {
+    setSessionDetailsLoading(false);
+  }
+};
+
+const handleViewStudentHistory = async (studentId) => {
+  try {
+    setSessionDetailsLoading(true);
+
+    const response = await getStudentSessionHistory(studentId);
+
+    setViewingStudentHistory(response.data);
+  } catch (error) {
+    console.error("Error fetching student history:", error);
+
+    toast.error(
+      error.response?.data?.message ||
+      "Failed to load student session history"
     );
   } finally {
     setSessionDetailsLoading(false);
