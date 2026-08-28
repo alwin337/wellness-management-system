@@ -1,18 +1,11 @@
 const mongoose = require("mongoose");
 
-const Assessment = require(
-  "../models/Assessment"
-);
-
-const AssessmentResult = require(
-  "../models/AssessmentResult"
-);
+const Assessment = require("../models/Assessment");
+const AssessmentResult = require("../models/AssessmentResult");
 
 const {
   calculateAssessmentScore,
-} = require(
-  "../services/assessmentScoringService"
-);
+} = require("../services/assessmentScoringService");
 
 // Get all active assessments
 const getAssessments = async (
@@ -44,6 +37,7 @@ const getAssessments = async (
     });
   }
 };
+
 
 // Get one assessment
 const getAssessment = async (
@@ -98,6 +92,7 @@ const getAssessment = async (
   }
 };
 
+
 // Submit assessment
 const submitAssessment = async (
   req,
@@ -106,9 +101,10 @@ const submitAssessment = async (
   try {
     const { answers } = req.body;
 
+    // Validate answers
     if (
-      !answers ||
-      !Array.isArray(answers)
+      !Array.isArray(answers) ||
+      answers.length === 0
     ) {
       return res.status(400).json({
         message:
@@ -116,6 +112,7 @@ const submitAssessment = async (
       });
     }
 
+    // Validate assessment ID
     if (
       !mongoose.Types.ObjectId.isValid(
         req.params.id
@@ -146,51 +143,63 @@ const submitAssessment = async (
       });
     }
 
-    // Calculate result
+    // Calculate score
     const result =
       calculateAssessmentScore(
         assessment,
         answers
       );
 
+    // Prepare result
+    const resultData = {
+      userId:
+        req.user._id,
+
+      assessmentId:
+        assessment._id,
+
+      instrumentName:
+        assessment.instrument.name,
+
+      instrumentVersion:
+        assessment.instrument.version,
+
+      answers:
+        result.answers,
+
+      rawScore:
+        result.rawScore,
+
+      totalScore:
+        result.totalScore,
+
+      maxScore:
+        result.maxScore,
+
+      percentage:
+        result.percentage,
+
+      level:
+        result.level,
+
+      resultDescription:
+        result.description,
+
+      recommendation:
+        result.recommendation,
+    };
+
+    // PSQI component scores
+    if (result.components) {
+      resultData.components =
+        result.components;
+    }
+
     // Save result
     const savedResult =
-      await AssessmentResult.create({
-        userId: req.user._id,
-
-        assessmentId:
-          assessment._id,
-
-        instrumentName:
-          assessment.instrument.name,
-
-        instrumentVersion:
-          assessment.instrument.version,
-
-        answers:
-          result.answers,
-
-        rawScore:
-          result.rawScore,
-
-        totalScore:
-          result.totalScore,
-
-        maxScore:
-          result.maxScore,
-
-        percentage:
-          result.percentage,
-
-        level:
-          result.level,
-
-        resultDescription:
-          result.description,
-
-        recommendation:
-          result.recommendation,
-      });
+      await AssessmentResult.create(
+        resultData
+      );
 
     res.status(201).json({
       message:
@@ -230,6 +239,9 @@ const submitAssessment = async (
         recommendation:
           result.recommendation,
 
+        components:
+          result.components || null,
+
         completedAt:
           savedResult.createdAt,
       },
@@ -248,6 +260,7 @@ const submitAssessment = async (
   }
 };
 
+
 // Get student's assessment history
 const getMyResults = async (
   req,
@@ -256,7 +269,8 @@ const getMyResults = async (
   try {
     const results =
       await AssessmentResult.find({
-        userId: req.user._id,
+        userId:
+          req.user._id,
       })
         .populate(
           "assessmentId",
@@ -267,7 +281,9 @@ const getMyResults = async (
         });
 
     res.status(200).json({
-      count: results.length,
+      count:
+        results.length,
+
       results,
     });
   } catch (error) {
@@ -279,10 +295,13 @@ const getMyResults = async (
     res.status(500).json({
       message:
         "Error fetching assessment history",
-      error: error.message,
+
+      error:
+        error.message,
     });
   }
 };
+
 
 // Get one student's result
 const getMyResult = async (
@@ -303,8 +322,11 @@ const getMyResult = async (
 
     const result =
       await AssessmentResult.findOne({
-        _id: req.params.id,
-        userId: req.user._id,
+        _id:
+          req.params.id,
+
+        userId:
+          req.user._id,
       }).populate(
         "assessmentId",
         "title category instrument description"
@@ -329,10 +351,13 @@ const getMyResult = async (
     res.status(500).json({
       message:
         "Error fetching assessment result",
-      error: error.message,
+
+      error:
+        error.message,
     });
   }
 };
+
 
 // Admin creates assessment
 const createAssessment = async (
@@ -390,10 +415,13 @@ const createAssessment = async (
     res.status(400).json({
       message:
         "Error creating assessment",
-      error: error.message,
+
+      error:
+        error.message,
     });
   }
 };
+
 
 // Admin updates assessment
 const updateAssessment = async (
@@ -464,10 +492,13 @@ const updateAssessment = async (
     res.status(400).json({
       message:
         "Error updating assessment",
-      error: error.message,
+
+      error:
+        error.message,
     });
   }
 };
+
 
 // Admin deactivates assessment
 const deleteAssessment = async (
@@ -498,7 +529,8 @@ const deleteAssessment = async (
       });
     }
 
-    assessment.isActive = false;
+    assessment.isActive =
+      false;
 
     await assessment.save();
 
@@ -515,10 +547,13 @@ const deleteAssessment = async (
     res.status(500).json({
       message:
         "Error deactivating assessment",
-      error: error.message,
+
+      error:
+        error.message,
     });
   }
 };
+
 
 module.exports = {
   getAssessments,
