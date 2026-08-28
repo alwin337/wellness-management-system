@@ -1,56 +1,40 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import {
-  History,
-  CalendarDays,
-  User,
-  Mail,
-  Building2,
-  FileText,
+  Eye,
+  Loader2,
+  X,
   MessageSquare,
 } from "lucide-react";
 
+import DashboardLayout from "../components/dashboard/DashboardLayout";
 import {
   getMySessions,
-  getPastAppointments,
   getSession,
-  getStudentSessionHistory,
   sendFeedback,
 } from "../services/sessionApi";
 
 const CounsellorSessions = () => {
   const [sessions, setSessions] = useState([]);
-  const [pastAppointments, setPastAppointments] = useState([]);
-
+  const [totalSessions, setTotalSessions] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [selectedSession, setSelectedSession] = useState(null);
-  const [sessionDetailsLoading, setSessionDetailsLoading] = useState(false);
-  const [viewingSession, setViewingSession] = useState(null);
-  const [viewingStudentHistory, setViewingStudentHistory] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
   const [feedback, setFeedback] = useState("");
-  const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
-  useEffect(() => {
-    loadSessionData();
-  }, []);
-
-  const loadSessionData = async () => {
+  const fetchSessions = async () => {
     try {
       setLoading(true);
 
-      const [sessionsResponse, appointmentsResponse] =
-        await Promise.all([
-          getMySessions(),
-          getPastAppointments(),
-        ]);
+      const response = await getMySessions();
 
-      setSessions(sessionsResponse.data?.sessions || []);
-      setPastAppointments(
-        appointmentsResponse.data?.appointments || []
-      );
+      setSessions(response.data.sessions || []);
+      setTotalSessions(response.data.totalSessions || 0);
     } catch (error) {
-      console.error("SESSION DATA ERROR:", error);
+      console.error("Error fetching sessions:", error);
 
       toast.error(
         error.response?.data?.message ||
@@ -61,53 +45,39 @@ const CounsellorSessions = () => {
     }
   };
 
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
   const handleViewSession = async (sessionId) => {
-  try {
-    setSessionDetailsLoading(true);
+    try {
+      setDetailsLoading(true);
 
-    const response = await getSession(sessionId);
+      const response = await getSession(sessionId);
 
-    setViewingSession(response.data.session);
-  } catch (error) {
-    console.error("Error fetching session:", error);
+      setSelectedSession(response.data.session);
 
-    toast.error(
-      error.response?.data?.message || "Failed to load session details"
-    );
-  } finally {
-    setSessionDetailsLoading(false);
-  }
-};
+      setFeedback(response.data.session?.feedback || "");
+    } catch (error) {
+      console.error("Error fetching session:", error);
 
-const handleViewStudentHistory = async (studentId) => {
-  try {
-    setSessionDetailsLoading(true);
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to load session details"
+      );
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
-    const response = await getStudentSessionHistory(studentId);
-
-    setViewingStudentHistory(response.data);
-  } catch (error) {
-    console.error("Error fetching student history:", error);
-
-    toast.error(
-      error.response?.data?.message ||
-      "Failed to load student session history"
-    );
-  } finally {
-    setSessionDetailsLoading(false);
-  }
-};
-
-  const handleFeedback = async () => {
-    if (!selectedSession) return;
-
+  const handleSendFeedback = async () => {
     if (!feedback.trim()) {
-      toast.error("Feedback is required");
+      toast.error("Please enter feedback");
       return;
     }
 
     try {
-      setSendingFeedback(true);
+      setFeedbackLoading(true);
 
       await sendFeedback(
         selectedSession._id,
@@ -116,20 +86,22 @@ const handleViewStudentHistory = async (studentId) => {
 
       toast.success("Feedback sent successfully");
 
-      setFeedback("");
-      setSelectedSession(null);
+      setSelectedSession((prev) => ({
+        ...prev,
+        feedback: feedback.trim(),
+        feedbackSent: true,
+      }));
 
-      // Refresh sessions so the updated feedback is displayed
-      await loadSessionData();
+      await fetchSessions();
     } catch (error) {
-      console.error("FEEDBACK ERROR:", error);
+      console.error("Error sending feedback:", error);
 
       toast.error(
         error.response?.data?.message ||
           "Failed to send feedback"
       );
     } finally {
-      setSendingFeedback(false);
+      setFeedbackLoading(false);
     }
   };
 
@@ -143,608 +115,281 @@ const handleViewStudentHistory = async (studentId) => {
     });
   };
 
-  const formatTime = (time) => {
-    if (!time) return "";
-
-    return time;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-slate-500">
-          Loading session history...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <DashboardLayout role="counsellor">
+      <div className="space-y-6">
 
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
-            <History className="w-6 h-6" />
-          </div>
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">
+            Session History
+          </h1>
 
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              Session History
-            </h1>
-
-            <p className="text-sm text-slate-500">
-              View completed counselling sessions and past appointments.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Session count */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-        <p className="text-sm text-slate-500">
-          Total Sessions
-        </p>
-
-        <p className="text-3xl font-bold text-slate-800 mt-1">
-          {sessions.length}
-        </p>
-      </div>
-
-      {/* Sessions */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-
-        <div className="px-6 py-5 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-800">
-            Completed Sessions
-          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            View completed counselling sessions and provide
+            feedback.
+          </p>
         </div>
 
-        {sessions.length === 0 ? (
-          <div className="p-10 text-center">
-            <History className="w-10 h-10 mx-auto text-slate-300" />
+        {/* Total Sessions */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <p className="text-sm text-slate-500">
+            Total Sessions
+          </p>
 
-            <p className="mt-3 text-slate-500">
-              No sessions found.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-
-            {sessions.map((session) => (
-              <div
-                key={session._id}
-                className="p-6 hover:bg-slate-50 transition"
-              >
-                <button 
-                  type="button"
-                  onClick={() => handleViewSession(session._id)}
-                  className="mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition"
-    
-                >
-                  View Details
-
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleViewStudentHistory(session.userId?._id)}
-                  className="mt-4 ml-2 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
-                >
-                  Student History
-                </button>
-
-                {/* Student information */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-
-                  <div className="space-y-2">
-
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-emerald-500" />
-
-                      <span className="font-semibold text-slate-800">
-                        {session.userId?.name || "Unknown Student"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <Mail className="w-4 h-4" />
-
-                      {session.userId?.email || "No email"}
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <Building2 className="w-4 h-4" />
-
-                      {session.userId?.department || "No department"}
-                    </div>
-
-                  </div>
-
-                  {/* Session date */}
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <CalendarDays className="w-4 h-4 text-emerald-500" />
-
-                    {formatDate(session.sessionDate)}
-                  </div>
-
-                </div>
-
-                {/* Reason */}
-                <div className="mt-4 p-4 rounded-xl bg-slate-50">
-
-                  <div className="flex items-center gap-2 mb-1">
-                    <FileText className="w-4 h-4 text-slate-500" />
-
-                    <span className="text-sm font-medium text-slate-700">
-                      Reason
-                    </span>
-                  </div>
-
-                  <p className="text-sm text-slate-600">
-                    {session.reason || "No reason provided"}
-                  </p>
-
-                </div>
-
-                {/* Notes */}
-                {session.notes && (
-                  <div className="mt-3">
-
-                    <p className="text-sm font-medium text-slate-700">
-                      Notes
-                    </p>
-
-                    <p className="text-sm text-slate-500 mt-1">
-                      {session.notes}
-                    </p>
-
-                  </div>
-                )}
-
-                {/* Feedback */}
-                <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-
-                  <div>
-                    {session.feedbackSent ? (
-                      <span className="text-sm text-emerald-600 font-medium">
-                        Feedback sent
-                      </span>
-                    ) : (
-                      <span className="text-sm text-slate-400">
-                        Feedback not sent
-                      </span>
-                    )}
-                  </div>
-
-                  {!session.feedbackSent && (
-                    <button
-                      onClick={() => setSelectedSession(session)}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      Send Feedback
-                    </button>
-                  )}
-
-                </div>
-
-              </div>
-            ))}
-
-          </div>
-        )}
-
-      </div>
-
-      {/* Past appointments */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-
-        <div className="px-6 py-5 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-800">
-            Past Appointments
-          </h2>
+          <p className="text-3xl font-bold text-slate-800 mt-1">
+            {totalSessions}
+          </p>
         </div>
 
-        {pastAppointments.length === 0 ? (
-          <div className="p-8 text-center text-slate-500">
-            No past appointments found.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
+        {/* Session Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 
-            {pastAppointments.map((appointment) => (
-              <div
-                key={appointment._id}
-                className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-              >
-
-                <div>
-                  <p className="font-medium text-slate-800">
-                    {appointment.userId?.name || "Unknown Student"}
-                  </p>
-
-                  <p className="text-sm text-slate-500">
-                    {appointment.reason || "No reason provided"}
-                  </p>
-                </div>
-
-                <div className="text-sm text-slate-500">
-                  {formatDate(appointment.appointmentDate)}
-                </div>
-
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${
-                    appointment.status === "completed"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {appointment.status}
-                </span>
-
-              </div>
-            ))}
-
-          </div>
-        )}
-
-      </div>
-
-      {/* Feedback Modal */}
-      {selectedSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-
-            <h2 className="text-xl font-semibold text-slate-800">
-              Send Feedback
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h2 className="font-semibold text-slate-800">
+              Completed Sessions
             </h2>
+          </div>
 
-            <p className="text-sm text-slate-500 mt-1">
-              Feedback for{" "}
-              <span className="font-medium">
-                {selectedSession.userId?.name}
-              </span>
-            </p>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-7 h-7 animate-spin text-emerald-500" />
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-500">
+                No sessions found.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
 
-            <textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Enter feedback..."
-              rows={5}
-              className="w-full mt-5 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-400"
-            />
+              <table className="w-full text-sm">
 
-            <div className="flex justify-end gap-3 mt-5">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-left px-6 py-4 font-semibold text-slate-600">
+                      Student
+                    </th>
+
+                    <th className="text-left px-6 py-4 font-semibold text-slate-600">
+                      Department
+                    </th>
+
+                    <th className="text-left px-6 py-4 font-semibold text-slate-600">
+                      Reason
+                    </th>
+
+                    <th className="text-left px-6 py-4 font-semibold text-slate-600">
+                      Date
+                    </th>
+
+                    <th className="text-left px-6 py-4 font-semibold text-slate-600">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+
+                  {sessions.map((session) => (
+                    <tr
+                      key={session._id}
+                      className="hover:bg-slate-50 transition"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-slate-800">
+                          {session.userId?.name || "N/A"}
+                        </p>
+
+                        <p className="text-xs text-slate-500">
+                          {session.userId?.email || ""}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-4 text-slate-600">
+                        {session.userId?.department || "N/A"}
+                      </td>
+
+                      <td className="px-6 py-4 text-slate-600">
+                        {session.reason || "N/A"}
+                      </td>
+
+                      <td className="px-6 py-4 text-slate-600">
+                        {formatDate(session.sessionDate)}
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleViewSession(session._id)
+                          }
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Session Details Modal */}
+      {selectedSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl">
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Session Details
+                </h2>
+
+                <p className="text-sm text-slate-500 mt-1">
+                  {selectedSession.userId?.name || "Student"}
+                </p>
+              </div>
 
               <button
                 onClick={() => {
                   setSelectedSession(null);
                   setFeedback("");
                 }}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600"
+                className="p-2 rounded-lg hover:bg-slate-100"
               >
-                Cancel
+                <X className="w-5 h-5" />
               </button>
-
-              <button
-                onClick={handleFeedback}
-                disabled={sendingFeedback}
-                className="px-4 py-2 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 disabled:opacity-50"
-              >
-                {sendingFeedback
-                  ? "Sending..."
-                  : "Send Feedback"}
-              </button>
-
             </div>
 
-          </div>
+            {/* Details */}
+            <div className="p-6 space-y-5">
 
-        </div>
-      )}
-      {/* Session Details Modal */}
-{viewingSession && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-    <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            Session Details
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Counselling session information
-          </p>
-        </div>
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Student
+                  </p>
 
-        <button
-          type="button"
-          onClick={() => setViewingSession(null)}
-          className="text-slate-400 hover:text-slate-700 text-2xl"
-        >
-          ×
-        </button>
-      </div>
-
-      {sessionDetailsLoading ? (
-        <div className="p-8 text-center text-slate-500">
-          Loading session details...
-        </div>
-      ) : (
-        <div className="p-6 space-y-6">
-
-          {/* Student */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase">
-              Student
-            </h3>
-
-            <div className="mt-2 rounded-xl bg-slate-50 p-4">
-              <p className="font-semibold text-slate-900">
-                {viewingSession.userId?.name || "N/A"}
-              </p>
-
-              <p className="text-sm text-slate-600">
-                {viewingSession.userId?.email || "N/A"}
-              </p>
-
-              <p className="text-sm text-slate-600">
-                Department:{" "}
-                {viewingSession.userId?.department || "N/A"}
-              </p>
-            </div>
-          </div>
-
-          {/* Appointment */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase">
-              Appointment
-            </h3>
-
-            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">
-                  Date
-                </p>
-
-                <p className="font-medium text-slate-900 mt-1">
-                  {viewingSession.appointmentId?.appointmentDate
-                    ? new Date(
-                        viewingSession.appointmentId.appointmentDate
-                      ).toLocaleDateString()
-                    : "N/A"}
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">
-                  Time
-                </p>
-
-                <p className="font-medium text-slate-900 mt-1">
-                  {viewingSession.appointmentId?.startTime || "N/A"}
-                  {" - "}
-                  {viewingSession.appointmentId?.endTime || "N/A"}
-                </p>
-              </div>
-
-            </div>
-          </div>
-
-          {/* Reason */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase">
-              Reason
-            </h3>
-
-            <p className="mt-2 rounded-xl bg-slate-50 p-4 text-slate-700">
-              {viewingSession.reason || "No reason provided"}
-            </p>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase">
-              Session Notes
-            </h3>
-
-            <p className="mt-2 rounded-xl bg-slate-50 p-4 text-slate-700 whitespace-pre-wrap">
-              {viewingSession.notes || "No notes available"}
-            </p>
-          </div>
-
-          {/* Session Date */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase">
-              Session Date
-            </h3>
-
-            <p className="mt-2 text-slate-700">
-              {viewingSession.sessionDate
-                ? new Date(
-                    viewingSession.sessionDate
-                  ).toLocaleString()
-                : "N/A"}
-            </p>
-          </div>
-
-          {/* Feedback */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase">
-              Feedback
-            </h3>
-
-            <div className="mt-2 rounded-xl bg-slate-50 p-4">
-              {viewingSession.feedbackSent ? (
-                <p className="text-slate-700 whitespace-pre-wrap">
-                  {viewingSession.feedback || "Feedback sent"}
-                </p>
-              ) : (
-                <p className="text-slate-500">
-                  Feedback has not been sent yet.
-                </p>
-              )}
-            </div>
-          </div>
-
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
-{/* Student Session History Modal */}
-{viewingStudentHistory && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
-
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            Student Session History
-          </h2>
-
-          <p className="text-sm text-slate-500 mt-1">
-            Previous counselling sessions
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setViewingStudentHistory(null)}
-          className="text-slate-400 hover:text-slate-700 text-2xl"
-        >
-          ×
-        </button>
-      </div>
-
-      <div className="p-6 space-y-6">
-
-        {/* Student Information */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-500 uppercase">
-            Student
-          </h3>
-
-          <div className="mt-2 rounded-xl bg-slate-50 p-4">
-            <p className="font-semibold text-slate-900">
-              {viewingStudentHistory.student?.name || "N/A"}
-            </p>
-
-            <p className="text-sm text-slate-600">
-              {viewingStudentHistory.student?.email || "N/A"}
-            </p>
-
-            <p className="text-sm text-slate-600">
-              Department:{" "}
-              {viewingStudentHistory.student?.department || "N/A"}
-            </p>
-          </div>
-        </div>
-
-        {/* Total Sessions */}
-        <div className="rounded-xl bg-slate-50 p-4">
-          <p className="text-sm text-slate-500">
-            Total Sessions
-          </p>
-
-          <p className="text-2xl font-bold text-slate-900 mt-1">
-            {viewingStudentHistory.totalSessions ?? 0}
-          </p>
-        </div>
-
-        {/* Session History */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-500 uppercase">
-            Session History
-          </h3>
-
-          <div className="mt-3 space-y-3">
-
-            {viewingStudentHistory.sessions?.length > 0 ? (
-              viewingStudentHistory.sessions.map((historySession) => (
-                <div
-                  key={historySession._id}
-                  className="rounded-xl border border-slate-200 p-4"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        {historySession.reason || "Counselling Session"}
-                      </p>
-
-                      <p className="text-sm text-slate-500 mt-1">
-                        Session Date:{" "}
-                        {historySession.sessionDate
-                          ? new Date(
-                              historySession.sessionDate
-                            ).toLocaleString()
-                          : "N/A"}
-                      </p>
-                    </div>
-
-                    <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                      {historySession.appointmentId?.status || "N/A"}
-                    </span>
-
-                  </div>
-
-                  {/* Appointment Details */}
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <p className="text-xs text-slate-500">
-                        Appointment Date
-                      </p>
-
-                      <p className="text-sm font-medium text-slate-800 mt-1">
-                        {historySession.appointmentId?.appointmentDate
-                          ? new Date(
-                              historySession.appointmentId.appointmentDate
-                            ).toLocaleDateString()
-                          : "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <p className="text-xs text-slate-500">
-                        Time
-                      </p>
-
-                      <p className="text-sm font-medium text-slate-800 mt-1">
-                        {historySession.appointmentId?.startTime || "N/A"}
-                        {" - "}
-                        {historySession.appointmentId?.endTime || "N/A"}
-                      </p>
-                    </div>
-
-                  </div>
+                  <p className="font-medium text-slate-800">
+                    {selectedSession.userId?.name || "N/A"}
+                  </p>
                 </div>
-              ))
-            ) : (
-              <div className="rounded-xl bg-slate-50 p-6 text-center">
-                <p className="text-slate-500">
-                  No previous sessions found for this student.
-                </p>
-              </div>
-            )}
 
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Email
+                  </p>
+
+                  <p className="font-medium text-slate-800">
+                    {selectedSession.userId?.email || "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Department
+                  </p>
+
+                  <p className="font-medium text-slate-800">
+                    {selectedSession.userId?.department || "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Session Date
+                  </p>
+
+                  <p className="font-medium text-slate-800">
+                    {formatDate(selectedSession.sessionDate)}
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Reason */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1">
+                  Reason
+                </p>
+
+                <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700">
+                  {selectedSession.reason || "No reason provided."}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1">
+                  Session Notes
+                </p>
+
+                <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 whitespace-pre-wrap">
+                  {selectedSession.notes || "No notes available."}
+                </div>
+              </div>
+
+              {/* Feedback */}
+              <div className="border-t pt-5">
+
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="w-5 h-5 text-emerald-600" />
+
+                  <h3 className="font-semibold text-slate-800">
+                    Feedback
+                  </h3>
+                </div>
+
+                <textarea
+                  value={feedback}
+                  onChange={(e) =>
+                    setFeedback(e.target.value)
+                  }
+                  placeholder="Enter feedback for the student..."
+                  rows={4}
+                  className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+
+                <button
+                  onClick={handleSendFeedback}
+                  disabled={feedbackLoading}
+                  className="mt-3 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition"
+                >
+                  {feedbackLoading
+                    ? "Sending..."
+                    : "Send Feedback"}
+                </button>
+
+              </div>
+
+            </div>
           </div>
         </div>
+      )}
 
-      </div>
-    </div>
-  </div>
-)}
-
-    </div>
+      {/* Loading overlay while fetching details */}
+      {detailsLoading && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-xl px-6 py-4 shadow-lg flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+            <span className="text-sm text-slate-700">
+              Loading session...
+            </span>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   );
 };
 

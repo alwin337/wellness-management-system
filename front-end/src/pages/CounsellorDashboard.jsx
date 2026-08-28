@@ -23,7 +23,6 @@ import Button from "../components/Button";
 import { getUserProfile } from "../services/userApi";
 import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
 import { getCounsellorAppointments, updateAppointmentStatus } from "../services/appointmentApi";
-import { createSession } from "../services/sessionApi";
 
 const CounsellorDashboard = () => {
   const { tab } = useParams();
@@ -38,11 +37,6 @@ const CounsellorDashboard = () => {
   const [error, setError] = useState(null);
   
   const [updatingId, setUpdatingId] = useState(null);
-
-  const [sessionModalOpen, setSessionModalOpen] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [sessionNotes, setSessionNotes] = useState("");
-  const [creatingSession, setCreatingSession] = useState(false);
 
   // Schedule Form State
   const [slotDate, setSlotDate] = useState("");
@@ -113,38 +107,6 @@ const CounsellorDashboard = () => {
       setUpdatingId(null);
     }
   };
-  
-  const handleCompleteSession = async () => {
-  if (!selectedAppointment) return;
-
-  try {
-    setCreatingSession(true);
-
-    await createSession(
-      selectedAppointment._id,
-      sessionNotes
-    );
-
-    toast.success("Session completed successfully");
-
-    // Close modal
-    setSessionModalOpen(false);
-    setSelectedAppointment(null);
-    setSessionNotes("");
-
-    // Reload appointments
-    fetchData();
-  } catch (err) {
-    console.error("Create session error:", err);
-
-    toast.error(
-      err.response?.data?.message ||
-      "Failed to complete session"
-    );
-  } finally {
-    setCreatingSession(false);
-  }
-};
 
   // Counsellor add schedule slot submit
   const handleAddScheduleSlot = async (e) => {
@@ -472,11 +434,7 @@ const CounsellorDashboard = () => {
 
                             {appt.status === "confirmed" && (
                               <button
-                                onClick={() => {
-                                  setSelectedAppointment(appt);
-                                  setSessionNotes("");
-                                  setSessionModalOpen(true);
-                                }}
+                                onClick={() => handleStatusChange(appt._id, "completed")}
                                 disabled={updatingId !== null}
                                 className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition"
                               >
@@ -627,115 +585,6 @@ const CounsellorDashboard = () => {
         )}
 
       </div>
-      
-
-      {/* Complete Session Modal */}
-      {sessionModalOpen && selectedAppointment && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">
-                  Complete Counselling Session
-                </h2>
-
-                <p className="text-sm text-slate-500 mt-1">
-                  Add notes for this completed session.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSessionModalOpen(false);
-                  setSelectedAppointment(null);
-                  setSessionNotes("");
-                }}
-                className="text-slate-400 hover:text-slate-700 text-xl"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Student Information */}
-            <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
-              <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                Student
-              </p>
-
-              <p className="font-semibold text-slate-800 mt-1">
-                {selectedAppointment.userId?.name || "Student"}
-              </p>
-
-              <p className="text-xs text-slate-500 mt-1">
-                {selectedAppointment.userId?.email || ""}
-              </p>
-
-              <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-500">
-                <span>
-                  Date:{" "}
-                  {new Date(
-                    selectedAppointment.appointmentDate
-                  ).toLocaleDateString()}
-                </span>
-
-                <span>
-                  Time: {selectedAppointment.startTime} -{" "}
-                  {selectedAppointment.endTime}
-                </span>
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Session Notes
-              </label>
-
-              <textarea
-                value={sessionNotes}
-                onChange={(e) =>
-                  setSessionNotes(e.target.value)
-                }
-                rows={6}
-                placeholder="Enter notes about the counselling session..."
-                className="w-full border border-slate-200 rounded-xl p-3 text-sm text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setSessionModalOpen(false);
-                  setSelectedAppointment(null);
-                  setSessionNotes("");
-                }}
-                disabled={creatingSession}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCompleteSession}
-                disabled={creatingSession}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition disabled:bg-slate-300"
-              >
-                {creatingSession
-                  ? "Completing..."
-                  : "Complete Session"}
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
     </DashboardLayout>
   );
 };
