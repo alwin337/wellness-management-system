@@ -38,6 +38,17 @@ const questionSchema = new mongoose.Schema(
       trim: true,
     },
 
+    inputType: {
+      type: String,
+      enum: [
+        "option",
+        "number",
+        "time",
+        "text",
+      ],
+      default: "option",
+    },
+    
     options: {
       type: [optionSchema],
       required: true,
@@ -149,6 +160,7 @@ const assessmentSchema = new mongoose.Schema(
           "sum",
           "reverse_sum",
           "who5",
+          "psqi",
         ],
 
         required: true,
@@ -183,12 +195,18 @@ const assessmentSchema = new mongoose.Schema(
         type: [interpretationSchema],
         default: [],
       },
+
+      componentScoring: {
+      type: Object,
+      default: {}
+      },
     },
 
     isActive: {
       type: Boolean,
       default: true,
     },
+    
   },
 
   {

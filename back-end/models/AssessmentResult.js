@@ -9,7 +9,7 @@ const answerSchema = new mongoose.Schema(
     },
 
     response: {
-      type: Number,
+      type: mongoose.Schema.Types.Mixed,
       required: true,
     },
 
@@ -84,6 +84,12 @@ const assessmentResultSchema = new mongoose.Schema(
     recommendation: {
       type: String,
     },
+
+    components: {
+        type: Map,
+        of: Number,
+        default: undefined,
+      },
   },
 
   {
