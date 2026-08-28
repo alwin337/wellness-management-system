@@ -22,7 +22,7 @@ const {
 const {
   studentOnly,
 } = require(
-  "../middleware/roleMiddleware"
+  "../middleware/studentMiddleware"
 );
 
 

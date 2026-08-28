@@ -276,10 +276,13 @@ const sendMessage =
               item.sender ===
               "student"
                 ? "user"
-                : "assistant",
+                : "model",
 
-            content:
-              item.message,
+            parts: [
+              {
+              text:item.message,
+              },
+            ],
           }));
 
 
