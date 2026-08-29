@@ -9,7 +9,9 @@ import {
   UserCog, 
   History,
   LogOut,
-  X 
+  X,
+  ClipboardList,
+  MessageSquare 
 } from "lucide-react";
 
 const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
@@ -28,6 +30,8 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/student/profile": UserCircle,
     "/student/appointments": CalendarCheck,
     "/student/schedule": CalendarDays,
+    "/student/assessments": ClipboardList,
+    "/student/chatbot": MessageSquare,
     
     // Counsellor links
     "/counsellor": LayoutDashboard,
@@ -48,6 +52,8 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
       { name: "My Profile", path: "/student/profile" },
       { name: "Appointments", path: "/student/appointments" },
       { name: "Schedule", path: "/student/schedule" },
+      { name: "Assessments", path: "/student/assessments" },
+      { name: "Chatbot", path: "/student/chatbot" },
     ],
     counsellor: [
       { name: "Dashboard", path: "/counsellor" },

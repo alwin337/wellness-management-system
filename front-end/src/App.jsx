@@ -12,6 +12,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import CounsellorDashboard from "./pages/CounsellorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import CounsellorSessions from "./pages/CounsellorSessions";
+import Assessments from "./pages/Assessments";
+import Chatbot from "./pages/Chatbot";
 
 function App() {
   return (
@@ -33,6 +35,26 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["student"]}>
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Student Assessments */}
+        <Route
+          path="/student/assessments"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <Assessments />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Student Chatbot */}
+        <Route
+          path="/student/chatbot"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <Chatbot />
             </ProtectedRoute>
           }
         />
