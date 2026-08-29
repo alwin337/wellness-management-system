@@ -11,7 +11,8 @@ import {
   LogOut,
   X,
   ClipboardList,
-  MessageSquare 
+  MessageSquare,
+  Wrench 
 } from "lucide-react";
 
 const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
@@ -32,6 +33,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/student/schedule": CalendarDays,
     "/student/assessments": ClipboardList,
     "/student/chatbot": MessageSquare,
+    "/student/facility-requests": Wrench,
     
     // Counsellor links
     "/counsellor": LayoutDashboard,
@@ -44,6 +46,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/admin/students": Users,
     "/admin/counsellor": UserCog,
     "/admin/schedules": CalendarDays,
+    "/admin/requests": Wrench,
   };
 
   const menus = {
@@ -54,6 +57,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
       { name: "Schedule", path: "/student/schedule" },
       { name: "Assessments", path: "/student/assessments" },
       { name: "Chatbot", path: "/student/chatbot" },
+      { name: "Facility Requests", path: "/student/facility-requests" },
     ],
     counsellor: [
       { name: "Dashboard", path: "/counsellor" },
@@ -66,6 +70,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
       { name: "Students", path: "/admin/students" },
       { name: "Counsellor", path: "/admin/counsellor" },
       { name: "Schedules", path: "/admin/schedules" },
+      { name: "Facility Requests", path: "/admin/requests" },
     ],
   };
 

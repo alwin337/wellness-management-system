@@ -12,7 +12,8 @@ import {
   AlertCircle, 
   HelpCircle,
   TrendingUp,
-  CalendarCheck
+  CalendarCheck,
+  Wrench
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -24,6 +25,7 @@ import InputField from "../components/InputField";
 import { getUserProfile, updateUserProfile } from "../services/userApi";
 import { getAllSchedules } from "../services/scheduleApi";
 import { getMyAppointments, createAppointment, cancelMyAppointment } from "../services/appointmentApi";
+import { createFacilityRequest } from "../services/facilityRequestApi";
 
 const StudentDashboard = () => {
   const { tab } = useParams();
@@ -47,6 +49,13 @@ const StudentDashboard = () => {
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [submittingBooking, setSubmittingBooking] = useState(false);
+
+  // Facility Request Form State
+  const [reqTitle, setReqTitle] = useState("");
+  const [reqCategory, setReqCategory] = useState("other");
+  const [reqLocation, setReqLocation] = useState("");
+  const [reqDescription, setReqDescription] = useState("");
+  const [submittingReq, setSubmittingReq] = useState(false);
 
   // Fetch all dashboard data
   const fetchData = async () => {
@@ -157,6 +166,46 @@ const StudentDashboard = () => {
     }
   };
 
+  // Submit Facility Request
+  const handleSubmitFacilityRequest = async (e) => {
+    e.preventDefault();
+    if (!reqTitle.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!reqLocation.trim()) {
+      toast.error("Location is required");
+      return;
+    }
+    if (!reqDescription.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+
+    try {
+      setSubmittingReq(true);
+      const payload = {
+        title: reqTitle.trim(),
+        category: reqCategory,
+        location: reqLocation.trim(),
+        description: reqDescription.trim()
+      };
+      await createFacilityRequest(payload);
+      toast.success("Facility request submitted successfully!");
+      
+      // Reset form
+      setReqTitle("");
+      setReqCategory("other");
+      setReqLocation("");
+      setReqDescription("");
+    } catch (err) {
+      console.error("Facility Request submission error:", err);
+      toast.error(err.response?.data?.message || "Failed to submit facility request");
+    } finally {
+      setSubmittingReq(false);
+    }
+  };
+
   // Helper: Extract unique counsellor from schedules or appointments list
   const getCounsellorDetails = () => {
     // 1. Try from schedules
@@ -238,12 +287,14 @@ const StudentDashboard = () => {
               {activeTab === "profile" && "Student Profile Settings"}
               {activeTab === "appointments" && "Your Counselling Sessions"}
               {activeTab === "schedule" && "Available Slot Bookings"}
+              {activeTab === "facility-requests" && "Facility Support Request"}
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               {activeTab === "dashboard" && "Take care of your mind. Book slots or check appointments."}
               {activeTab === "profile" && "Keep your profile name and department information current."}
               {activeTab === "appointments" && "View status logs and manage upcoming or past interactions."}
               {activeTab === "schedule" && "Select a day and time slot with the student counsellor."}
+              {activeTab === "facility-requests" && "Submit a report for campus maintenance or room concerns."}
             </p>
           </div>
           
@@ -638,6 +689,78 @@ const StudentDashboard = () => {
                   type="submit"
                   disabled={updatingProfile}
                   className="bg-emerald-600 hover:bg-emerald-700"
+                />
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ------------------- FACILITY REQUESTS TAB ------------------- */}
+        {activeTab === "facility-requests" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 max-w-xl">
+            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <Wrench className="w-5.5 h-5.5 text-emerald-500" />
+              Submit Campus Facility Request
+            </h2>
+
+            <form onSubmit={handleSubmitFacilityRequest} className="space-y-5">
+              <InputField
+                label="Request Title"
+                type="text"
+                value={reqTitle}
+                onChange={(e) => setReqTitle(e.target.value)}
+                placeholder="e.g. AC not cooling, fan making noise"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Category
+                  </label>
+                  <select
+                    value={reqCategory}
+                    onChange={(e) => setReqCategory(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl py-3.5 px-4 text-[15px] font-medium bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
+                  >
+                    <option value="air_conditioner">Air Conditioner</option>
+                    <option value="fan">Ceiling / Table Fan</option>
+                    <option value="lighting">Lighting & Bulbs</option>
+                    <option value="furniture">Furniture / Desk / Chair</option>
+                    <option value="room">Room / Venue Issue</option>
+                    <option value="electrical">Electrical & Wiring</option>
+                    <option value="cleanliness">Cleanliness & Sanitation</option>
+                    <option value="other">Other Campus Issue</option>
+                  </select>
+                </div>
+
+                <InputField
+                  label="Location / Room"
+                  type="text"
+                  value={reqLocation}
+                  onChange={(e) => setReqLocation(e.target.value)}
+                  placeholder="e.g. Room 402, Block C"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Detailed Description
+                </label>
+                <textarea
+                  value={reqDescription}
+                  onChange={(e) => setReqDescription(e.target.value)}
+                  placeholder="Provide details about the issue so maintenance staff can troubleshoot..."
+                  rows={4}
+                  className="w-full border border-slate-200 rounded-xl p-4 text-[15px] font-medium bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200"
+                />
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  text={submittingReq ? "Submitting request..." : "Submit Facility Request"}
+                  type="submit"
+                  disabled={submittingReq}
+                  className="bg-emerald-600 hover:bg-emerald-700 border-0"
                 />
               </div>
             </form>

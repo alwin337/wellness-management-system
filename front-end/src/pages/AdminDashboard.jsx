@@ -15,7 +15,8 @@ import {
   Info,
   CalendarCheck,
   Settings,
-  Plus
+  Plus,
+  Wrench
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -27,6 +28,7 @@ import InputField from "../components/InputField";
 import { getUserProfile } from "../services/userApi";
 import { getAllCounsellors, addCounsellor, updateCounsellor, deleteCounsellor } from "../services/counsellorApi";
 import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
+import { getAllFacilityRequests, updateFacilityRequest } from "../services/facilityRequestApi";
 
 const AdminDashboard = () => {
   const { tab } = useParams();
@@ -54,6 +56,14 @@ const AdminDashboard = () => {
   const [slotStartTime, setSlotStartTime] = useState("");
   const [slotEndTime, setSlotEndTime] = useState("");
   const [savingSchedule, setSavingSchedule] = useState(false);
+
+  // Facility Request States
+  const [requests, setRequests] = useState([]);
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [updateStatus, setUpdateStatus] = useState("");
+  const [updateResponse, setUpdateResponse] = useState("");
+  const [submittingUpdate, setSubmittingUpdate] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Fetch all admin data
   const fetchData = async () => {
@@ -100,6 +110,16 @@ const AdminDashboard = () => {
         console.warn("Failed to load schedules:", sErr);
       }
       setSchedules(schedulesList);
+
+      // 4. Get facility requests
+      let requestsList = [];
+      try {
+        const rRes = await getAllFacilityRequests();
+        requestsList = rRes.data.requests || [];
+      } catch (rErr) {
+        console.warn("Failed to load facility requests:", rErr);
+      }
+      setRequests(requestsList);
 
     } catch (err) {
       console.error("Admin dashboard load error:", err);
@@ -242,6 +262,59 @@ const AdminDashboard = () => {
     }
   };
 
+  // Admin update facility request
+  const handleUpdateFacilityRequestObj = async (e) => {
+    e.preventDefault();
+    if (!editingRequest) return;
+
+    try {
+      setSubmittingUpdate(true);
+      const payload = {
+        status: updateStatus,
+        adminResponse: updateResponse.trim()
+      };
+      await updateFacilityRequest(editingRequest._id, payload);
+      toast.success("Facility request updated successfully!");
+      setEditingRequest(null);
+      fetchData(); // Refresh data
+    } catch (err) {
+      console.error("Facility Request update error:", err);
+      toast.error(err.response?.data?.message || "Failed to update facility request");
+    } finally {
+      setSubmittingUpdate(false);
+    }
+  };
+
+  const startEditingRequest = (req) => {
+    setEditingRequest(req);
+    setUpdateStatus(req.status || "pending");
+    setUpdateResponse(req.adminResponse || "");
+  };
+
+  const getCategoryLabel = (category) => {
+    const labels = {
+      air_conditioner: "Air Conditioner",
+      fan: "Ceiling / Table Fan",
+      lighting: "Lighting & Bulbs",
+      furniture: "Furniture / Desk / Chair",
+      room: "Room / Venue Issue",
+      electrical: "Electrical & Wiring",
+      cleanliness: "Cleanliness & Sanitation",
+      other: "Other Campus Issue"
+    };
+    return labels[category] || category;
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const styles = {
+      pending: "bg-amber-50 text-amber-700 border-amber-200",
+      in_progress: "bg-blue-50 text-blue-700 border-blue-200",
+      resolved: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      rejected: "bg-rose-50 text-rose-700 border-rose-200"
+    };
+    return styles[status] || "bg-slate-50 text-slate-700 border-slate-200";
+  };
+
   // Stats Computations
   const totalSlotsCount = schedules.length;
   const openSlotsCount = schedules.filter(s => s.isAvailable).length;
@@ -276,12 +349,14 @@ const AdminDashboard = () => {
               {activeTab === "counsellor" && "Counsellor Workspace"}
               {activeTab === "schedules" && "Time Schedules Management"}
               {activeTab === "students" && "Student Directory Details"}
+              {activeTab === "requests" && "Facility Requests Management"}
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               {activeTab === "dashboard" && "Overview statistics, schedules check, and portal diagnostics."}
               {activeTab === "counsellor" && "Create or modify the wellness counsellor account."}
               {activeTab === "schedules" && "Configure availability slots for the student counsellor."}
               {activeTab === "students" && "Registered system user roles details."}
+              {activeTab === "requests" && "Review and update campus maintenance and concern reports."}
             </p>
           </div>
 
@@ -309,6 +384,14 @@ const AdminDashboard = () => {
               }`}
             >
               Schedules
+            </Link>
+            <Link 
+              to="/admin/requests"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                activeTab === "requests" ? "bg-slate-800 text-white" : "bg-white border text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Facility Requests
             </Link>
           </div>
         </div>
@@ -805,6 +888,165 @@ const AdminDashboard = () => {
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------- FACILITY REQUESTS TAB ------------------- */}
+        {activeTab === "requests" && (
+          <div className="space-y-6">
+            {/* Filter Bar */}
+            <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+              {["all", "pending", "in_progress", "resolved", "rejected"].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setStatusFilter(filter)}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize tracking-wide transition ${
+                    statusFilter === filter
+                      ? "bg-white text-slate-800 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  {filter.replace("_", " ")}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Requests List */}
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Wrench className="w-5.5 h-5.5 text-emerald-500" />
+                  Facility Requests List
+                </h2>
+
+                {requests.filter(r => statusFilter === "all" || r.status === statusFilter).length === 0 ? (
+                  <EmptyState 
+                    message="No facility requests found" 
+                    subtitle={`There are no requests matching the '${statusFilter}' status filter.`}
+                  />
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {requests
+                      .filter(r => statusFilter === "all" || r.status === statusFilter)
+                      .map((req) => (
+                        <div key={req._id} className="py-4 space-y-3 hover:bg-slate-50/20 px-2 rounded-xl transition">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-bold text-slate-800 text-[15px]">{req.title}</h4>
+                              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-1">
+                                Category: <span className="text-slate-600">{getCategoryLabel(req.category)}</span>
+                              </p>
+                            </div>
+                            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${getStatusBadgeClass(req.status)}`}>
+                              {req.status?.replace("_", " ")}
+                            </span>
+                          </div>
+
+                          <div className="text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium">
+                            <p><strong className="text-slate-700">Location:</strong> {req.location}</p>
+                            <p className="mt-1 leading-relaxed"><strong className="text-slate-700">Detail:</strong> {req.description}</p>
+                          </div>
+
+                          {req.adminResponse && (
+                            <div className="text-xs text-emerald-800 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 font-medium">
+                              <strong>Admin Response:</strong> {req.adminResponse}
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>
+                              Submitted: {new Date(req.createdAt).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit"
+                              })}
+                            </span>
+                            <button
+                              onClick={() => startEditingRequest(req)}
+                              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/70 px-3 py-1.5 rounded-lg transition"
+                            >
+                              Manage Request
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Management Form overlay / card */}
+              <div className="lg:col-span-1">
+                {editingRequest ? (
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 sticky top-6 animate-scale-up">
+                    <div className="border-b pb-3 border-slate-100">
+                      <h3 className="font-bold text-slate-800 text-md">Manage Request</h3>
+                      <p className="text-xs text-slate-500 mt-1 truncate font-medium">Title: {editingRequest.title}</p>
+                    </div>
+
+                    <form onSubmit={handleUpdateFacilityRequestObj} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                          Update Status
+                        </label>
+                        <select
+                          value={updateStatus}
+                          onChange={(e) => setUpdateStatus(e.target.value)}
+                          className="w-full border rounded-xl p-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                          Admin Response (Optional)
+                        </label>
+                        <textarea
+                          value={updateResponse}
+                          onChange={(e) => setUpdateResponse(e.target.value)}
+                          placeholder="Provide details about updates, schedules or resolution instructions..."
+                          rows={4}
+                          className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700"
+                        />
+                      </div>
+
+                      <div className="pt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingRequest(null)}
+                          className="w-1/2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold py-2.5 rounded-xl text-xs transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submittingUpdate}
+                          className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-xs transition disabled:bg-slate-400"
+                        >
+                          {submittingUpdate ? "Saving..." : "Save Updates"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200/50 border-dashed rounded-2xl p-6 text-center text-slate-400 space-y-2 sticky top-6">
+                    <Wrench className="w-10 h-10 mx-auto text-slate-300 animate-bounce" />
+                    <div>
+                      <h4 className="font-bold text-slate-500 text-xs uppercase tracking-wider">No Request Selected</h4>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-[200px] mx-auto leading-relaxed">
+                        Select a campus facility request in the list on the left to resolve status or respond.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         )}
