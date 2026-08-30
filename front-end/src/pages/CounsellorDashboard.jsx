@@ -12,7 +12,8 @@ import {
   UserCheck,
   Info,
   Plus,
-  Trash2
+  Trash2,
+  Star
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -23,6 +24,7 @@ import Button from "../components/Button";
 import { getUserProfile } from "../services/userApi";
 import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
 import { getCounsellorAppointments, updateAppointmentStatus } from "../services/appointmentApi";
+import { getCounsellorReviews } from "../services/reviewApi";
 
 const CounsellorDashboard = () => {
   const { tab } = useParams();
@@ -37,6 +39,9 @@ const CounsellorDashboard = () => {
   const [error, setError] = useState(null);
   
   const [updatingId, setUpdatingId] = useState(null);
+
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
 
   // Schedule Form State
   const [slotDate, setSlotDate] = useState("");
@@ -79,6 +84,16 @@ const CounsellorDashboard = () => {
         console.warn("Schedules API failed:", schedErr);
       }
       setSchedules(schedList);
+
+      // Fetch reviews
+      let reviewsList = [];
+      try {
+        const reviewsRes = await getCounsellorReviews();
+        reviewsList = reviewsRes.data.reviews || [];
+      } catch (reviewsErr) {
+        console.warn("Reviews API failed:", reviewsErr);
+      }
+      setReviews(reviewsList);
 
     } catch (err) {
       console.error("Counsellor dashboard loading error:", err);
@@ -350,6 +365,63 @@ const CounsellorDashboard = () => {
               </div>
 
             </div>
+
+            {/* Student Feedback Reviews Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mt-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-4">
+                <Star className="w-5.5 h-5.5 text-emerald-500 fill-emerald-500" />
+                Student Anonymous Feedback Reviews
+              </h2>
+
+              {reviews.length === 0 ? (
+                <EmptyState 
+                  message="No feedback reviews received yet" 
+                  subtitle="Anonymous ratings and reviews from completed sessions will display here." 
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {reviews.map((rev, index) => (
+                    <div key={rev._id || index} className="border border-slate-100 rounded-xl p-5 bg-slate-50/50 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star 
+                              key={s} 
+                              className={`w-4 h-4 ${
+                                s <= rev.rating 
+                                  ? "text-amber-400 fill-amber-400" 
+                                  : "text-slate-200 fill-transparent"
+                              }`} 
+                            />
+                          ))}
+                          <span className="text-xs font-bold text-slate-500 ml-1">({rev.rating}/5)</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-white border px-2 py-0.5 rounded-md">
+                          Anonymous
+                        </span>
+                      </div>
+
+                      {rev.comment ? (
+                        <p className="text-sm text-slate-600 italic font-medium leading-relaxed">
+                          "{rev.comment}"
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">No comment provided.</p>
+                      )}
+
+                      <div className="text-[10px] text-slate-400 font-medium">
+                        Submitted: {new Date(rev.createdAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric"
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 

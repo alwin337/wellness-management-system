@@ -13,7 +13,8 @@ import {
   HelpCircle,
   TrendingUp,
   CalendarCheck,
-  Wrench
+  Wrench,
+  Star
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -26,6 +27,7 @@ import { getUserProfile, updateUserProfile } from "../services/userApi";
 import { getAllSchedules } from "../services/scheduleApi";
 import { getMyAppointments, createAppointment, cancelMyAppointment } from "../services/appointmentApi";
 import { createFacilityRequest } from "../services/facilityRequestApi";
+import { createReview } from "../services/reviewApi";
 
 const StudentDashboard = () => {
   const { tab } = useParams();
@@ -56,6 +58,13 @@ const StudentDashboard = () => {
   const [reqLocation, setReqLocation] = useState("");
   const [reqDescription, setReqDescription] = useState("");
   const [submittingReq, setSubmittingReq] = useState(false);
+
+  // Feedback/Review States
+  const [reviewingAppt, setReviewingAppt] = useState(null);
+  const [rating, setRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewedApptIds, setReviewedApptIds] = useState(new Set());
 
   // Fetch all dashboard data
   const fetchData = async () => {
@@ -203,6 +212,47 @@ const StudentDashboard = () => {
       toast.error(err.response?.data?.message || "Failed to submit facility request");
     } finally {
       setSubmittingReq(false);
+    }
+  };
+
+  // Submit Review
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!reviewingAppt) return;
+    if (rating < 1 || rating > 5) {
+      toast.error("Rating must be between 1 and 5");
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+      const payload = {
+        appointmentId: reviewingAppt._id,
+        rating,
+        comment: reviewComment.trim()
+      };
+      await createReview(payload);
+      toast.success("Feedback submitted anonymously. Thank you!");
+      
+      // Track reviewed appointment in local state
+      setReviewedApptIds(prev => {
+        const next = new Set(prev);
+        next.add(reviewingAppt._id);
+        return next;
+      });
+
+      // Reset & close
+      setReviewingAppt(null);
+      setRating(5);
+      setReviewComment("");
+      
+      // Refresh dashboard data
+      fetchData();
+    } catch (err) {
+      console.error("Submit review error:", err);
+      toast.error(err.response?.data?.message || "Failed to submit review");
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -560,92 +610,181 @@ const StudentDashboard = () => {
 
         {/* ------------------- APPOINTMENTS TAB ------------------- */}
         {activeTab === "appointments" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <CalendarCheck className="w-5.5 h-5.5 text-emerald-500" />
-              Session Appointment History
-            </h2>
+          <div className="space-y-8">
+            
+            {/* Section 1: Upcoming Sessions */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-4">
+                <CalendarCheck className="w-5.5 h-5.5 text-emerald-500" />
+                Upcoming Booked Sessions
+              </h2>
 
-            {appointments.length === 0 ? (
-              <EmptyState 
-                message="No appointment history found" 
-                subtitle="Book slots under the Schedule tab to start your wellness sessions." 
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-slate-400 uppercase tracking-widest text-[10px] font-bold border-b border-slate-100">
-                      <th className="pb-3 font-semibold">Date</th>
-                      <th className="pb-3 font-semibold">Time</th>
-                      <th className="pb-3 font-semibold">Counsellor</th>
-                      <th className="pb-3 font-semibold">Reason</th>
-                      <th className="pb-3 font-semibold text-center">Status</th>
-                      <th className="pb-3 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
+              {appointments.filter(a => a.status === "pending" || a.status === "confirmed").length === 0 ? (
+                <EmptyState 
+                  message="No upcoming appointments scheduled" 
+                  subtitle="Use the Book Slots tab to coordinate a session with the counsellor." 
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-slate-400 uppercase tracking-widest text-[10px] font-bold border-b border-slate-100">
+                        <th className="pb-3 font-semibold">Date</th>
+                        <th className="pb-3 font-semibold">Time</th>
+                        <th className="pb-3 font-semibold">Counsellor</th>
+                        <th className="pb-3 font-semibold">Reason</th>
+                        <th className="pb-3 font-semibold text-center">Status</th>
+                        <th className="pb-3 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
 
-                  <tbody className="divide-y divide-slate-100">
-                    {appointments.map((appt) => {
+                    <tbody className="divide-y divide-slate-100">
+                      {appointments
+                        .filter(a => a.status === "pending" || a.status === "confirmed")
+                        .map((appt) => {
+                          const statusColors = {
+                            pending: "bg-amber-50 text-amber-700 border-amber-200",
+                            confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          };
+
+                          return (
+                            <tr key={appt._id} className="hover:bg-slate-50/30 transition">
+                              <td className="py-4 font-semibold text-slate-800">
+                                {new Date(appt.appointmentDate).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric"
+                                })}
+                              </td>
+                              <td className="py-4 text-slate-500 font-medium">
+                                {appt.startTime} - {appt.endTime}
+                              </td>
+                              <td className="py-4 text-slate-600 font-medium">
+                                {appt.counsellorId?.name || "Wellness Counsellor"}
+                              </td>
+                              <td className="py-4 max-w-xs truncate text-slate-600 font-medium" title={appt.reason}>
+                                {appt.reason || "N/A"}
+                              </td>
+                              <td className="py-4 text-center">
+                                <span className={`inline-flex border px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                  statusColors[appt.status] || "bg-slate-50 text-slate-600"
+                                }`}>
+                                  {appt.status}
+                                </span>
+                              </td>
+                              <td className="py-4 text-right">
+                                <button
+                                  onClick={() => handleCancelAppointment(appt._id)}
+                                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition"
+                                >
+                                  Cancel
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Section 2: Session History / Session History UI */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-4">
+                <History className="w-5.5 h-5.5 text-emerald-500" />
+                Past & Completed Session History
+              </h2>
+
+              {appointments.filter(a => a.status === "completed" || a.status === "cancelled" || a.status === "rejected").length === 0 ? (
+                <EmptyState 
+                  message="No past sessions found" 
+                  subtitle="Your completed sessions and cancel logs will display here." 
+                />
+              ) : (
+                <div className="space-y-4">
+                  {appointments
+                    .filter(a => a.status === "completed" || a.status === "cancelled" || a.status === "rejected")
+                    .map((appt) => {
                       const statusColors = {
-                        pending: "bg-amber-50 text-amber-700 border-amber-200",
-                        confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
-                        rejected: "bg-rose-50 text-rose-700 border-rose-200",
                         completed: "bg-purple-50 text-purple-700 border-purple-200",
                         cancelled: "bg-slate-100 text-slate-600 border-slate-200",
+                        rejected: "bg-rose-50 text-rose-700 border-rose-200"
                       };
 
+                      const isReviewed = reviewedApptIds.has(appt._id);
+
                       return (
-                        <tr key={appt._id} className="hover:bg-slate-50/30 transition">
-                          <td className="py-4 font-semibold text-slate-800">
-                            {new Date(appt.appointmentDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric"
-                            })}
-                          </td>
-                          <td className="py-4 text-slate-500 font-medium">
-                            {appt.startTime} - {appt.endTime}
-                          </td>
-                          <td className="py-4 text-slate-600 font-medium">
-                            {appt.counsellorId?.name || "Wellness Counsellor"}
-                          </td>
-                          <td className="py-4 max-w-xs truncate text-slate-600 font-medium" title={appt.reason}>
-                            {appt.reason || "N/A"}
-                          </td>
-                          <td className="py-4 text-center">
-                            <span className={`inline-flex border px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                              statusColors[appt.status] || statusColors.pending
-                            }`}>
-                              {appt.status}
-                            </span>
-                          </td>
-                          <td className="py-4 text-right">
-                            {(appt.status === "pending" || appt.status === "confirmed") && (
-                              <button
-                                onClick={() => handleCancelAppointment(appt._id)}
-                                className="text-xs font-semibold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition"
-                              >
-                                Cancel
-                              </button>
+                        <div key={appt._id} className="border border-slate-100 rounded-xl p-5 hover:bg-slate-50/20 transition flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-2.5 flex-1">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className="font-extrabold text-slate-800 text-sm">
+                                {new Date(appt.appointmentDate).toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric"
+                                })}
+                              </span>
+                              <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                {appt.startTime} - {appt.endTime}
+                              </span>
+                              <span className={`inline-flex border px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
+                                statusColors[appt.status] || "bg-slate-50 text-slate-600"
+                              }`}>
+                                {appt.status}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium text-slate-600">
+                              <div>
+                                <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider mb-0.5">Counsellor</span>
+                                <span className="text-slate-700 font-bold">{appt.counsellorId?.name || "Wellness Counsellor"}</span>
+                                {appt.counsellorId?.specialization && (
+                                  <span className="text-slate-400 block text-[10px] mt-0.5">({appt.counsellorId.specialization})</span>
+                                )}
+                              </div>
+                              <div>
+                                <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider mb-0.5">Reason for Session</span>
+                                <span className="text-slate-700">{appt.reason || "N/A"}</span>
+                              </div>
+                            </div>
+
+                            {/* Session notes where available */}
+                            {appt.notes && (
+                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600 font-medium">
+                                <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider mb-1">Counsellor Session Notes</span>
+                                <p className="leading-relaxed">{appt.notes}</p>
+                              </div>
                             )}
+                          </div>
+
+                          <div className="flex items-center self-end md:self-center gap-2">
                             {appt.status === "completed" && (
-                              <span className="text-xs font-semibold text-slate-400">Logged</span>
+                              isReviewed ? (
+                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Feedback Submitted
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => setReviewingAppt(appt)}
+                                  className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl shadow-sm shadow-emerald-600/10 hover:shadow-md transition inline-flex items-center gap-1.5"
+                                >
+                                  <Star className="w-4 h-4 fill-white" />
+                                  Give Feedback
+                                </button>
+                              )
                             )}
-                            {appt.status === "cancelled" && (
-                              <span className="text-xs font-semibold text-slate-400">Cancelled</span>
-                            )}
-                            {appt.status === "rejected" && (
-                              <span className="text-xs font-semibold text-slate-400">Rejected</span>
-                            )}
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
@@ -853,6 +992,92 @@ const StudentDashboard = () => {
                   className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold transition disabled:bg-gray-400"
                 >
                   {submittingBooking ? "Booking..." : "Book Session"}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ------------------- REVIEW SESSION MODAL ------------------- */}
+      {reviewingAppt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border p-6 space-y-5 animate-scale-up">
+            
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Review Counselling Session</h3>
+                <p className="text-xs text-slate-500 mt-1">Submit feedback for your session with <strong className="text-slate-700">{reviewingAppt.counsellorId?.name || "Counsellor"}</strong>.</p>
+              </div>
+              <button 
+                onClick={() => setReviewingAppt(null)}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-emerald-50/50 text-emerald-800 rounded-xl border border-emerald-100/50 text-[11px] font-semibold flex gap-2">
+              <Info className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+              <div>
+                <strong>Strict Privacy Guarantee:</strong> This feedback is completely anonymous. The counsellor cannot identify which student submitted this review.
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  Session Rating (Required)
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className="p-1 hover:scale-115 transition"
+                    >
+                      <Star 
+                        className={`w-8 h-8 ${
+                          star <= rating 
+                            ? "text-amber-400 fill-amber-400" 
+                            : "text-slate-200 fill-transparent"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="text-sm text-slate-500 font-bold ml-2">({rating} / 5)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  Comments / Suggestions (Optional)
+                </label>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Tell us about your experience to help the counsellor improve..."
+                  rows={4}
+                  className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setReviewingAppt(null)}
+                  className="w-1/2 border border-slate-200 text-slate-600 hover:bg-slate-50 py-2.5 rounded-xl text-sm font-semibold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold transition disabled:bg-slate-400 flex items-center justify-center gap-1"
+                >
+                  {submittingReview ? "Submitting..." : "Submit Review"}
                 </button>
               </div>
             </form>
