@@ -17,7 +17,13 @@ import {
   Star,
   History,
   Info,
-  ArrowRight
+  ArrowRight,
+  Smile,
+  Meh,
+  Frown,
+  MessageSquare,
+  Award,
+  ClipboardList
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -32,6 +38,7 @@ import { getMyAppointments, createAppointment, cancelMyAppointment } from "../se
 import { createFacilityRequest } from "../services/facilityRequestApi";
 import { createReview } from "../services/reviewApi";
 import { getStudentSessionHistory } from "../services/sessionApi";
+import { getMyResults } from "../services/assessmentApi";
 import { getCounsellorDisplayName } from "../utils/nameHelper";
 
 const StudentDashboard = () => {
@@ -43,6 +50,8 @@ const StudentDashboard = () => {
   const [schedules, setSchedules] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [assessmentsHistory, setAssessmentsHistory] = useState([]);
+  const [selectedMood, setSelectedMood] = useState("okay");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -118,6 +127,14 @@ const StudentDashboard = () => {
         }
       }
       setSessions(sessionList);
+
+      // Fetch assessments results history
+      try {
+        const historyRes = await getMyResults();
+        setAssessmentsHistory(historyRes.data.results || []);
+      } catch (assErr) {
+        console.warn("Failed to load assessments history:", assErr);
+      }
 
     } catch (err) {
       console.error("Error loading student dashboard data:", err);
@@ -418,243 +435,422 @@ const StudentDashboard = () => {
         {/* ------------------- DASHBOARD OVERVIEW TAB ------------------- */}
         {activeTab === "dashboard" && (
           <div className="space-y-8">
-            {/* Wellness greeting banner */}
-            <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6">
-              <div className="bg-emerald-500 text-white p-3.5 rounded-2xl shadow-lg shadow-emerald-500/20">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div className="text-center md:text-left">
-                <h3 className="text-lg font-bold text-slate-800">"Your mental health is a priority. Your happiness is an essential."</h3>
-                <p className="text-sm text-slate-600 mt-1">The Counselling Cell provides a confidential, non-judgmental environment to navigate challenges.</p>
+            {/* 1. WELCOME + MOOD CHECK-IN */}
+            <div className="bg-gradient-to-br from-[#E6F1EC] to-white border border-[#D3E8DF] rounded-[22px] p-8 text-left mb-6">
+              <h2 className="font-serif text-2xl font-bold text-[#152420]">
+                Good morning, {profile?.name || "Student"} 🌤️
+              </h2>
+              <p className="text-[#51625C] text-sm mt-1.5 font-medium">How are you feeling today?</p>
+
+              <div className="flex gap-2.5 flex-wrap mt-4">
+                {[
+                  { id: "great", label: "Great", color: "text-[#2E9276]" },
+                  { id: "good", label: "Good", color: "text-[#4E7FA0]" },
+                  { id: "okay", label: "Okay", color: "text-[#B8903E]" },
+                  { id: "stressed", label: "Stressed", color: "text-[#B2733F]" },
+                  { id: "low", label: "Low", color: "text-[#B25848]" }
+                ].map((m) => {
+                  const isSelected = selectedMood === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedMood(m.id)}
+                      className={`flex flex-col items-center gap-1.5 px-4.5 py-3 rounded-2xl border text-xs font-semibold min-w-[82px] transition ${
+                        isSelected
+                          ? "bg-[#1F6F5C] text-white border-[#1F6F5C]"
+                          : "bg-white border-[#DFE6E0] text-[#51625C] hover:border-[#D3E8DF]"
+                      }`}
+                    >
+                      <svg viewBox="0 0 24 24" className={`w-6 h-6 ${isSelected ? "stroke-white" : "stroke-current " + m.color}`} fill="none" strokeWidth="2">
+                        {m.id === "great" && <><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></>}
+                        {m.id === "good" && <><circle cx="12" cy="12" r="9"/><path d="M8 13.5s1.5 1.5 4 1.5 4-1.5 4-1.5M9 9h.01M15 9h.01"/></>}
+                        {m.id === "okay" && <><circle cx="12" cy="12" r="9"/><path d="M8 14h8M9 9h.01M15 9h.01"/></>}
+                        {m.id === "stressed" && <><circle cx="12" cy="12" r="9"/><path d="M8 15.5s1.5-1.5 4-1.5 4 1.5 4 1.5M9 9.5l1.5 1M15 9.5l-1.5 1"/></>}
+                        {m.id === "low" && <><circle cx="12" cy="12" r="9"/><path d="M8 16s1.5-2 4-2 4 2 4 2M9 9h.01M15 9h.01"/></>}
+                      </svg>
+                      {m.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Counsellor Guidance Section */}
+            {/* 2. QUICK ACTIONS */}
+            <div className="text-left mb-4">
+              <h3 className="font-serif text-base font-bold text-[#152420]">Quick actions</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 text-left">
+              <Link to="/student/assessments" className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 group">
+                <div className="w-10 h-10 rounded-xl bg-[#E7EFF4] text-[#4E7FA0] flex items-center justify-center mb-3">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-sm text-[#152420] group-hover:text-[#1F6F5C]">Take Self Assessment</h4>
+                <p className="text-xs text-[#8A9A94] mt-1.5 leading-relaxed">A short check-in to understand how you're really doing.</p>
+              </Link>
+
+              <Link to="/student/chatbot" className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 group">
+                <div className="w-10 h-10 rounded-xl bg-[#E6F1EC] text-[#1F6F5C] flex items-center justify-center mb-3">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-sm text-[#152420] group-hover:text-[#1F6F5C]">Chat with AI Assistant</h4>
+                <p className="text-xs text-[#8A9A94] mt-1.5 leading-relaxed">Talk through stress or worries any time, day or night.</p>
+              </Link>
+
+              <Link to="/student/schedule" className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 group">
+                <div className="w-10 h-10 rounded-xl bg-[#EEEAF6] text-[#7A6BA6] flex items-center justify-center mb-3">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-sm text-[#152420] group-hover:text-[#1F6F5C]">Book a Counselling Session</h4>
+                <p className="text-xs text-[#8A9A94] mt-1.5 leading-relaxed">Speak with a professional counsellor at a time that suits you.</p>
+              </Link>
+
+              <Link to="/resources" className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 group">
+                <div className="w-10 h-10 rounded-xl bg-[#FBF3E1] text-[#B8903E] flex items-center justify-center mb-3">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-sm text-[#152420] group-hover:text-[#1F6F5C]">Explore Resources</h4>
+                <p className="text-xs text-[#8A9A94] mt-1.5 leading-relaxed">Guides and exercises for stress, sleep and focus.</p>
+              </Link>
+            </div>
+
+            {/* 3. WELLNESS OVERVIEW */}
+            <div className="text-left mb-4">
+              <h3 className="font-serif text-base font-bold text-[#152420]">Your wellness overview</h3>
+            </div>
             {(() => {
-              const guidanceSessions = sessions.filter(s => s.feedbackSent && s.feedback);
+              const latestAssessment = assessmentsHistory[0] || null;
+              const latestScore = latestAssessment ? `${latestAssessment.totalScore || latestAssessment.score} / ${latestAssessment.maxScore || 100}` : "N/A";
+              const latestLevel = latestAssessment ? latestAssessment.level : "Stable";
+              const upcomingSessionsList = appointments.filter(a => a.status === "pending" || a.status === "confirmed");
+              const sortedUpcoming = [...upcomingSessionsList].sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate));
+              const nextSession = sortedUpcoming[0] || null;
+
               return (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 text-left">
-                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-emerald-500" />
-                    Counsellor Guidance
-                    {guidanceSessions.length > 0 && (
-                      <span className="ml-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider animate-pulse">
-                        New Guidance
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 text-left">
+                    <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#E6F1EC] text-[#1F6F5C] flex items-center justify-center">
+                        <ClipboardList className="w-4 h-4" />
+                      </div>
+                      <span className="font-serif text-2xl font-bold text-[#152420] mt-1">{latestScore}</span>
+                      <span className="text-xs text-[#8A9A94] font-medium">Latest assessment result</span>
+                    </div>
+
+                    <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#E7EFF4] text-[#4E7FA0] flex items-center justify-center">
+                        <Award className="w-4 h-4" />
+                      </div>
+                      <span className="font-serif text-2xl font-bold text-[#152420] mt-1 capitalize">{latestLevel}</span>
+                      <span className="text-xs text-[#8A9A94] font-medium">Current wellness level</span>
+                      {latestAssessment && (
+                        <span className="text-[10px] font-bold text-[#7C9885] mt-1 flex items-center gap-1">
+                          ↑ Slightly better than last week
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#EEEAF6] text-[#7A6BA6] flex items-center justify-center">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <span className="font-serif text-[14px] font-bold text-[#152420] mt-2 line-clamp-1">
+                        {nextSession ? `${new Date(nextSession.appointmentDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${nextSession.startTime}` : "No upcoming session"}
                       </span>
-                    )}
-                  </h2>
+                      <span className="text-xs text-[#8A9A94] font-medium">Upcoming session</span>
+                    </div>
 
-                  {guidanceSessions.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">No counsellor guidance yet.</p>
-                  ) : (
-                    (() => {
-                      const sortedSessions = [...guidanceSessions].sort((a, b) => new Date(b.sessionDate || 0) - new Date(a.sessionDate || 0));
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {sortedSessions.map((session) => {
-                            const rawName = session.counsellorId?.name || "Student Counsellor";
-                            const displayName = rawName.startsWith("Dr.") ? rawName : `Dr. ${rawName}`;
-                            const formattedDate = new Date(session.sessionDate).toLocaleDateString("en-GB", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            });
+                    <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#FBF3E1] text-[#B8903E] flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <span className="font-serif text-2xl font-bold text-[#152420] mt-1">{completedAppointmentsCount}</span>
+                      <span className="text-xs text-[#8A9A94] font-medium">Completed sessions</span>
+                    </div>
+                  </div>
 
-                            const reasonText = session.reason || appointments.find(a => a._id === (session.appointmentId?._id || session.appointmentId))?.reason || "";
-
-                            return (
-                              <div key={session._id} className="bg-emerald-50/40 border border-emerald-400/20 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition hover:shadow-sm">
-                                <div className="space-y-3">
-                                  <div className="flex justify-between items-start gap-4">
-                                    <div>
-                                      <h4 className="font-bold text-slate-800 text-sm">{displayName}</h4>
-                                      <span className="text-[10px] text-slate-400 block mt-0.5">{formattedDate}</span>
-                                    </div>
-                                    {reasonText && (
-                                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md max-w-[120px] truncate">
-                                        {reasonText}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-slate-600 bg-white border border-slate-100 p-3.5 rounded-xl italic font-medium leading-relaxed">
-                                    "{session.feedback}"
-                                  </p>
-                                </div>
-                                <div className="flex justify-between items-center pt-1 border-t border-emerald-500/10">
-                                  <span className="text-[10px] text-slate-400 font-medium">Provided after your session</span>
-                                  <Link
-                                    to="/student/appointments"
-                                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 hover:underline"
-                                  >
-                                    View Session
-                                    <ArrowRight className="w-3 h-3" />
-                                  </Link>
-                                </div>
-                              </div>
-                            );
-                          })}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column (2-span) */}
+                    <div className="lg:col-span-2 space-y-6 text-left">
+                      {/* Upcoming Session Details Card */}
+                      <div className="bg-white border border-[#DFE6E0] rounded-2xl p-6 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-serif text-[#152420] font-bold text-base">Upcoming session</h3>
+                          {nextSession ? (
+                            <span className={`badge uppercase tracking-wider text-[9px] font-extrabold ${
+                              nextSession.status === "confirmed" ? "badge-confirmed" : "badge-pending"
+                            }`}>
+                              {nextSession.status}
+                            </span>
+                          ) : (
+                            <span className="badge badge-pending uppercase tracking-wider text-[9px] font-extrabold">None Booked</span>
+                          )}
                         </div>
-                      );
-                    })()
-                  )}
-                </div>
-              );
-            })()}
 
-            {/* Statistics Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <StatCard
-                title="Upcoming Appointments"
-                value={upcomingAppointmentsCount}
-                subtitle="Booked active sessions"
-                color="blue"
-              />
-              <StatCard
-                title="Available Slots"
-                value={activeSchedulesCount}
-                subtitle="Open slots this week"
-                color="green"
-              />
-              <StatCard
-                title="Completed Sessions"
-                value={completedAppointmentsCount}
-                subtitle="Your completed journey"
-                color="purple"
-              />
-              <StatCard
-                title="Profile Status"
-                value={profileStatusText}
-                subtitle={profile?.department || "Dept not configured"}
-                color="orange"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Counsellor Profile Card */}
-              <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-emerald-500" />
-                    Student Counsellor
-                  </h2>
-
-                  <div className="flex flex-col items-center text-center p-4 bg-slate-50 rounded-xl mb-4">
-                    <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl font-bold mb-3 shadow-inner">
-                      {counsellor.name.split(" ").map(n => n[0]).join("")}
-                    </div>
-                    <h3 className="font-semibold text-slate-800 text-md">{counsellor.name}</h3>
-                    <p className="text-xs font-semibold text-emerald-600 uppercase tracking-widest mt-1 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      {counsellor.exists ? "Official Counsellor" : "Fallback Desk"}
-                    </p>
-                  </div>
-
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <span className="text-slate-400 block text-xs">Specialization</span>
-                      <span className="text-slate-700 font-medium">{counsellor.specialization}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-xs">Counselling Email</span>
-                      <span className="text-slate-700 font-medium break-all">{counsellor.email}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-xs">Contact Desk</span>
-                      <span className="text-slate-700 font-medium">{counsellor.contactNumber}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2">
-                  <Link to="/student/schedule" className="w-full">
-                    <Button text="Book Appointments" className="bg-emerald-600 hover:bg-emerald-700" />
-                  </Link>
-                  <p className="text-[11px] text-center text-slate-400">All discussions are fully private & confidential.</p>
-                </div>
-              </div>
-
-              {/* Schedules Overview */}
-              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-emerald-500" />
-                      Next Available Slots
-                    </h2>
-                    <Link to="/student/schedule" className="text-xs text-emerald-600 font-semibold hover:underline">
-                      View all ({activeSchedulesCount})
-                    </Link>
-                  </div>
-
-                  {schedules.filter(s => s.isAvailable).length === 0 ? (
-                    <EmptyState
-                      message="No schedules available"
-                      subtitle="Check back later or contact the counselling desk."
-                    />
-                  ) : (
-                    <div className="divide-y divide-slate-100">
-                      {schedules
-                        .filter(s => s.isAvailable)
-                        .slice(0, 3)
-                        .map((slot) => (
-                          <div key={slot._id} className="py-3 flex items-center justify-between hover:bg-slate-50/50 rounded-lg px-2 -mx-2">
-                            <div className="flex items-center gap-4">
-                              <div className="bg-emerald-50 text-emerald-700 p-2.5 rounded-xl">
-                                <Calendar className="w-5 h-5" />
+                        {nextSession ? (
+                          <>
+                            <div className="flex items-center gap-3.5 mb-5">
+                              <div className="w-11 h-11 rounded-full bg-[#D3E8DF] text-[#134A3D] flex items-center justify-center font-bold text-sm font-serif">
+                                {getCounsellorNameForAppointment(nextSession).replace("Dr. ", "").split(" ").map(n => n[0]).join("")}
                               </div>
                               <div>
-                                <span className="font-semibold text-slate-800 text-sm">
-                                  {new Date(slot.date).toLocaleDateString("en-US", {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </span>
-                                <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
-                                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                  {slot.startTime} - {slot.endTime}
-                                </div>
+                                <h4 className="font-bold text-sm text-[#152420]">{getCounsellorNameForAppointment(nextSession)}</h4>
+                                <span className="text-xs text-[#8A9A94] font-medium">{nextSession.reason || "Counselling Session"}</span>
                               </div>
                             </div>
-
-                            <button
-                              onClick={() => startBooking(slot)}
-                              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition"
-                            >
-                              Book Slot
-                            </button>
+                            <div className="divide-y divide-[#EBF0EC]">
+                              <div className="flex justify-between py-2.5 text-xs">
+                                <span className="text-[#8A9A94] font-medium">Date</span>
+                                <span className="font-bold text-[#152420]">
+                                  {new Date(nextSession.appointmentDate).toLocaleDateString("en-US", {
+                                    weekday: "long",
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric"
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex justify-between py-2.5 text-xs">
+                                <span className="text-[#8A9A94] font-medium">Time</span>
+                                <span className="font-bold text-[#152420]">{nextSession.startTime} - {nextSession.endTime}</span>
+                              </div>
+                              <div className="flex justify-between py-2.5 text-xs">
+                                <span className="text-[#8A9A94] font-medium">Session type</span>
+                                <span className="font-bold text-[#152420]">{nextSession.reason || "N/A"}</span>
+                              </div>
+                              <div className="flex justify-between py-2.5 text-xs">
+                                <span className="text-[#8A9A94] font-medium">Mode</span>
+                                <span className="font-bold text-[#152420]">
+                                  <span className="pill online">Online · Google Meet</span>
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-3.5 mt-5">
+                              <a href="https://meet.google.com" target="_blank" rel="noopener noreferrer" className="flex-1">
+                                <button className="btn btn-primary btn-block text-xs font-semibold py-2.5 rounded-xl">Join Session</button>
+                              </a>
+                              <Link to="/student/appointments" className="flex-1">
+                                <button className="btn btn-secondary btn-block text-xs font-semibold py-2.5 rounded-xl">View Details</button>
+                              </Link>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="py-6 text-center">
+                            <p className="text-xs text-[#8A9A94] italic mb-4">You have no upcoming sessions scheduled.</p>
+                            <Link to="/student/schedule">
+                              <button className="btn btn-primary text-xs font-semibold py-2.5 px-6 rounded-xl">Book a Session</button>
+                            </Link>
                           </div>
-                        ))}
-                    </div>
-                  )}
-                </div>
+                        )}
+                      </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100">
-                  <h3 className="text-sm font-semibold text-slate-800 mb-2">Upcoming Appt Reminder</h3>
-                  {appointments.filter(a => a.status === "pending" || a.status === "confirmed").length === 0 ? (
-                    <p className="text-xs text-slate-500">You have no upcoming counselling sessions scheduled.</p>
-                  ) : (
-                    (() => {
-                      const next = appointments.filter(a => a.status === "pending" || a.status === "confirmed")[0];
-                      return (
-                        <div className="bg-slate-50 rounded-xl p-3 flex justify-between items-center">
-                          <div>
-                            <span className="text-xs text-slate-500 block">Session Date:</span>
-                            <span className="text-xs font-bold text-slate-700">
-                              {new Date(next.appointmentDate).toLocaleDateString()} at {next.startTime}
-                            </span>
-                          </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                            next.status === "confirmed" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-                          }`}>
-                            {next.status}
-                          </span>
+                      {/* AI wellness assistant banner */}
+                      <div className="bg-gradient-to-br from-[#134A3D] to-[#1F6F5C] text-white rounded-[22px] p-8 flex items-center gap-6 flex-wrap">
+                        <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                          <MessageSquare className="w-7 h-7 text-white" />
                         </div>
-                      );
-                    })()
-                  )}
-                </div>
-              </div>
-            </div>
+                        <div className="flex-1 min-w-[220px]">
+                          <h4 className="font-serif text-lg font-bold">Need someone to talk to?</h4>
+                          <p className="text-xs text-white/90 mt-1 leading-relaxed max-w-md">Our AI wellness assistant can help with everyday stress, study pressure and general wellbeing — any time you need it.</p>
+                        </div>
+                        <Link to="/student/chatbot" className="flex-shrink-0">
+                          <button className="btn text-xs font-bold py-2.5 px-5 rounded-xl bg-white text-[#134A3D] hover:bg-[#F2F5F2] transition">Start Conversation</button>
+                        </Link>
+                      </div>
+
+                      {/* Recommended Resources */}
+                      <div>
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-serif text-[#152420] font-bold text-base">Recommended resources</h3>
+                          <Link to="/resources" className="text-xs font-semibold text-[#1F6F5C] flex items-center gap-1 hover:underline">
+                            View all
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                            <div>
+                              <span className="pill text-[10px] font-semibold bg-[#E7EFF4] text-[#4E7FA0] border-transparent self-start">Article</span>
+                              <h4 className="font-bold text-xs text-[#152420] mt-3">Stress Management</h4>
+                              <p className="text-xs text-[#8A9A94] mt-1 leading-relaxed">Simple techniques to stay calm during busy weeks.</p>
+                            </div>
+                            <Link to="/resources" className="text-xs font-bold text-[#1F6F5C] mt-3 flex items-center gap-1 hover:underline">
+                              View resource →
+                            </Link>
+                          </div>
+
+                          <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                            <div>
+                              <span className="pill text-[10px] font-semibold bg-[#EEEAF6] text-[#7A6BA6] border-transparent self-start">Guide</span>
+                              <h4 className="font-bold text-xs text-[#152420] mt-3">Better Sleep</h4>
+                              <p className="text-xs text-[#8A9A94] mt-1 leading-relaxed">A wind-down routine to help you fall asleep faster.</p>
+                            </div>
+                            <Link to="/resources" className="text-xs font-bold text-[#1F6F5C] mt-3 flex items-center gap-1 hover:underline">
+                              View resource →
+                            </Link>
+                          </div>
+
+                          <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                            <div>
+                              <span className="pill text-[10px] font-semibold bg-[#FBF3E1] text-[#B8903E] border-transparent self-start">Exercise</span>
+                              <h4 className="font-bold text-xs text-[#152420] mt-3">Exam Anxiety</h4>
+                              <p className="text-xs text-[#8A9A94] mt-1 leading-relaxed">Grounding exercises to use right before an exam.</p>
+                            </div>
+                            <Link to="/resources" className="text-xs font-bold text-[#1F6F5C] mt-3 flex items-center gap-1 hover:underline">
+                              View resource →
+                            </Link>
+                          </div>
+
+                          <div className="bg-white border border-[#DFE6E0] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                            <div>
+                              <span className="pill text-[10px] font-semibold bg-[#E6F1EC] text-[#1F6F5C] border-transparent self-start">Guide</span>
+                              <h4 className="font-bold text-xs text-[#152420] mt-3">Time Management</h4>
+                              <p className="text-xs text-[#8A9A94] mt-1 leading-relaxed">A simple framework to balance study and rest.</p>
+                            </div>
+                            <Link to="/resources" className="text-xs font-bold text-[#1F6F5C] mt-3 flex items-center gap-1 hover:underline">
+                              View resource →
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column (1-span) */}
+                    <div className="space-y-6 text-left">
+                      {/* Recent Assessment Card */}
+                      <div className="bg-white border border-[#DFE6E0] rounded-2xl p-6 shadow-sm">
+                        <h3 className="font-serif text-[#152420] font-bold text-base mb-3">Recent assessment</h3>
+                        {latestAssessment ? (
+                          <>
+                            <h4 className="font-bold text-[#152420] text-sm">{latestAssessment.title || "General Wellbeing Check-in"}</h4>
+                            <span className="text-xs text-[#8A9A94] block mt-1">Completed {new Date(latestAssessment.createdAt).toLocaleDateString()}</span>
+                            <div className="divide-y divide-[#EBF0EC] mt-4">
+                              <div className="flex justify-between py-2 text-xs">
+                                <span className="text-[#8A9A94] font-medium">Score</span>
+                                <span className="font-bold text-[#152420]">{latestScore}</span>
+                              </div>
+                              <div className="flex justify-between py-2 text-xs">
+                                <span className="text-[#8A9A94] font-medium">Wellness level</span>
+                                <span className="font-bold text-[#1F6F5C] capitalize">{latestLevel}</span>
+                              </div>
+                            </div>
+                            <Link to="/student/assessments" className="block mt-5">
+                              <button className="btn btn-secondary btn-block text-xs font-semibold py-2.5 rounded-xl">View Details</button>
+                            </Link>
+                          </>
+                        ) : (
+                          <div className="py-4 text-center">
+                            <p className="text-xs text-[#8A9A94] italic mb-4">No assessments completed yet.</p>
+                            <Link to="/student/assessments">
+                              <button className="btn btn-secondary btn-block text-xs font-semibold py-2.5 rounded-xl">Take Assessment</button>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Counsellor Guidance Section */}
+                      {(() => {
+                        const guidanceSessions = sessions.filter(s => s.feedbackSent && s.feedback);
+                        return (
+                          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+                            <h3 className="font-serif text-base font-bold text-slate-800 flex items-center gap-2">
+                              <FileText className="w-5 h-5 text-emerald-500" />
+                              Counsellor Guidance
+                              {guidanceSessions.length > 0 && (
+                                <span className="ml-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider animate-pulse">
+                                  New Guidance
+                                </span>
+                              )}
+                            </h3>
+
+                            {guidanceSessions.length === 0 ? (
+                              <p className="text-xs text-slate-400 italic">No counsellor guidance yet.</p>
+                            ) : (
+                              (() => {
+                                const sortedSessions = [...guidanceSessions].sort((a, b) => new Date(b.sessionDate || 0) - new Date(a.sessionDate || 0));
+                                return (
+                                  <div className="space-y-4">
+                                    {sortedSessions.slice(0, 2).map((session) => {
+                                      const rawName = session.counsellorId?.name || "Student Counsellor";
+                                      const displayName = rawName.startsWith("Dr.") ? rawName : `Dr. ${rawName}`;
+                                      const formattedDate = new Date(session.sessionDate).toLocaleDateString("en-GB", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                      });
+
+                                      return (
+                                        <div key={session._id} className="bg-emerald-50/40 border border-emerald-400/20 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                                          <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                              <div className="avatar" style={{ width: "24px", height: "24px", fontSize: "10px" }}>
+                                                {displayName.replace("Dr. ", "").substring(0, 2).toUpperCase()}
+                                              </div>
+                                              <div>
+                                                <h4 className="font-bold text-slate-800 text-xs">{displayName}</h4>
+                                                <span className="text-[9px] text-[#8A9A94] block">{formattedDate}</span>
+                                              </div>
+                                            </div>
+                                            <p className="text-xs text-slate-600 bg-white border border-slate-100 p-2.5 rounded-xl italic font-medium leading-relaxed">
+                                              "{session.feedback}"
+                                            </p>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                    <Link
+                                      to="/student/appointments"
+                                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 hover:underline"
+                                    >
+                                      View All Guidance
+                                      <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                  </div>
+                                );
+                              })()
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Recent Activity Timeline Card */}
+                      <div className="bg-white border border-[#DFE6E0] rounded-2xl p-6 shadow-sm">
+                        <h3 className="font-serif text-[#152420] font-bold text-base mb-4">Recent activity</h3>
+                        <div className="relative border-l-2 border-[#DFE6E0] ml-3.5 space-y-5">
+                          {/* Item 1 */}
+                          {latestAssessment && (
+                            <div className="relative pl-6">
+                              <span className="absolute -left-[30px] top-0 w-3.5 h-3.5 rounded-full bg-[#2E9276] border-2 border-white shadow-sm" />
+                              <div style={{ fontWeight: 600, fontSize: "13px" }}>Assessment completed</div>
+                              <div className="text-[#8A9A94] text-[11px] font-medium mt-0.5">
+                                {latestAssessment.title || "Check-in"} · {new Date(latestAssessment.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Item 2 */}
+                          {nextSession && (
+                            <div className="relative pl-6">
+                              <span className="absolute -left-[30px] top-0 w-3.5 h-3.5 rounded-full bg-[#7A6BA6] border-2 border-white shadow-sm" />
+                              <div style={{ fontWeight: 600, fontSize: "13px" }}>Session booked</div>
+                              <div className="text-[#8A9A94] text-[11px] font-medium mt-0.5">
+                                With {getCounsellorNameForAppointment(nextSession)} · {new Date(nextSession.appointmentDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Item 3 */}
+                          <div className="relative pl-6">
+                            <span className="absolute -left-[30px] top-0 w-3.5 h-3.5 rounded-full bg-[#B8903E] border-2 border-white shadow-sm" />
+                            <div style={{ fontWeight: 600, fontSize: "13px" }}>Resource viewed</div>
+                            <div className="text-[#8A9A94] text-[11px] font-medium mt-0.5">"Better Sleep" guide</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
 

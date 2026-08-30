@@ -55,12 +55,13 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
   const menus = {
     student: [
       { name: "Dashboard", path: "/student" },
-      { name: "My Profile", path: "/student/profile" },
-      { name: "Appointments", path: "/student/appointments" },
-      { name: "Schedule", path: "/student/schedule" },
-      { name: "Assessments", path: "/student/assessments" },
-      { name: "Chatbot", path: "/student/chatbot" },
+      { name: "Self Assessment", path: "/student/assessments" },
+      { name: "AI Wellness Chat", path: "/student/chatbot" },
+      { name: "Book Session", path: "/student/schedule" },
+      { name: "My Sessions", path: "/student/appointments" },
       { name: "Facility Requests", path: "/student/facility-requests" },
+      { name: "divider", isDivider: true },
+      { name: "Profile", path: "/student/profile" },
     ],
     counsellor: [
       { name: "Dashboard", path: "/counsellor" },
@@ -95,12 +96,12 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
         fixed inset-y-0 left-0 z-50 w-64 p-6 flex flex-col justify-between
         transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        ${role === "counsellor" ? "bg-[#134A3D] text-white" : "bg-slate-900 text-white"}
+        ${role === "counsellor" || role === "student" ? "bg-[#134A3D] text-white" : "bg-slate-900 text-white"}
       `}>
         <div>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            {role === "counsellor" ? (
+            {role === "counsellor" || role === "student" ? (
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3E9C82] to-[#1F6F5C] flex items-center justify-center flex-shrink-0">
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
@@ -110,7 +111,9 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
                 </div>
                 <div>
                   <div className="font-serif text-white font-bold text-sm leading-tight tracking-tight">Wellness Management System</div>
-                  <div className="text-[#9FC2B4] font-semibold text-[10.5px] uppercase tracking-wider">Counsellor Portal</div>
+                  <div className="text-[#9FC2B4] font-semibold text-[10.5px] uppercase tracking-wider">
+                    {role === "counsellor" ? "Counsellor Portal" : "Student Wellness"}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -118,7 +121,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
             )}
             <button
               onClick={() => setIsOpen(false)}
-              className={`p-1 rounded-lg lg:hidden text-gray-400 hover:text-white ${role === "counsellor" ? "hover:bg-white/5" : "hover:bg-slate-800"}`}
+              className={`p-1 rounded-lg lg:hidden text-gray-400 hover:text-white ${role === "counsellor" || role === "student" ? "hover:bg-white/5" : "hover:bg-slate-800"}`}
             >
               <X className="w-6 h-6" />
             </button>
@@ -126,7 +129,10 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
 
           {/* Navigation Links */}
           <nav className="space-y-1">
-            {currentMenu.map((item) => {
+            {currentMenu.map((item, idx) => {
+              if (item.isDivider) {
+                return <div key={`div-${idx}`} className="h-px bg-white/10 my-4 mx-2" />;
+              }
               const Icon = menuIcons[item.path] || LayoutDashboard;
               return (
                 <NavLink
@@ -137,10 +143,10 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium ${
                       isActive
-                        ? role === "counsellor"
+                        ? role === "counsellor" || role === "student"
                           ? "bg-white/10 text-white border-l-4 border-[#7CD9BB] pl-3"
                           : "bg-emerald-500 text-slate-900 shadow-lg shadow-emerald-500/20"
-                        : role === "counsellor"
+                        : role === "counsellor" || role === "student"
                           ? "text-[#BFDAD0] hover:bg-white/5 hover:text-white"
                           : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
                     }`
@@ -158,7 +164,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
         <button
           onClick={handleLogout}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition w-full mt-auto ${
-            role === "counsellor"
+            role === "counsellor" || role === "student"
               ? "text-[#BFDAD0] border border-white/10 hover:bg-white/5 hover:text-white"
               : "text-rose-400 hover:bg-slate-800 hover:text-rose-300"
           }`}

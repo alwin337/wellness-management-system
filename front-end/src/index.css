@@ -89,3 +89,8 @@ body {
 .counsellor-portal-theme .text-gray-400 {
   color: #8A9A94 !important;
 }
+
+/* Clickable pointer rules */
+a, button, select, input[type="submit"], input[type="button"], [role="button"], .cursor-pointer, .nav-item, .qa-card, .mood-opt {
+  cursor: pointer !important;
+}

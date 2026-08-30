@@ -6,7 +6,7 @@ const DashboardLayout = ({ role, user, children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className={`flex min-h-screen overflow-x-hidden ${role === "counsellor" ? "counsellor-portal-theme bg-[#F2F5F2]" : "bg-gray-50"}`}>
+    <div className={`flex min-h-screen overflow-x-hidden ${role === "counsellor" || role === "student" ? "counsellor-portal-theme bg-[#F2F5F2]" : "bg-gray-50"}`}>
       <Sidebar role={role} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
       <div className="flex-1 flex flex-col min-w-0">
