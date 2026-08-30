@@ -1,18 +1,19 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { 
-  LayoutDashboard, 
-  UserCircle, 
-  CalendarCheck, 
-  CalendarDays, 
-  Users, 
-  UserCog, 
+import {
+  LayoutDashboard,
+  UserCircle,
+  CalendarCheck,
+  CalendarDays,
+  Users,
+  UserCog,
   History,
   LogOut,
   X,
   ClipboardList,
   MessageSquare,
-  Wrench 
+  Wrench,
+  Star
 } from "lucide-react";
 
 const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
@@ -34,13 +35,15 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/student/assessments": ClipboardList,
     "/student/chatbot": MessageSquare,
     "/student/facility-requests": Wrench,
-    
+
     // Counsellor links
     "/counsellor": LayoutDashboard,
     "/counsellor/appointments": CalendarCheck,
     "/counsellor/schedule": CalendarDays,
     "/counsellor/sessions": History,
-    
+    "/counsellor/reviews": Star,
+    "/counsellor/profile": UserCircle,
+
     // Admin links
     "/admin": LayoutDashboard,
     "/admin/students": Users,
@@ -62,8 +65,10 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     counsellor: [
       { name: "Dashboard", path: "/counsellor" },
       { name: "Appointments", path: "/counsellor/appointments" },
-      { name: "Session History", path: "/counsellor/sessions" },
       { name: "Schedule", path: "/counsellor/schedule" },
+      { name: "Session History", path: "/counsellor/sessions" },
+      { name: "Reviews", path: "/counsellor/reviews" },
+      { name: "Profile", path: "/counsellor/profile" },
     ],
     admin: [
       { name: "Dashboard", path: "/admin" },
@@ -80,24 +85,40 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white p-6 flex flex-col justify-between
+        fixed inset-y-0 left-0 z-50 w-64 p-6 flex flex-col justify-between
         transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
+        ${role === "counsellor" ? "bg-[#134A3D] text-white" : "bg-slate-900 text-white"}
       `}>
         <div>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-lg font-bold tracking-tight text-emerald-400 leading-tight">Wellness Management System</h1>
-            <button 
+            {role === "counsellor" ? (
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3E9C82] to-[#1F6F5C] flex items-center justify-center flex-shrink-0">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                    <path d="M12 3v18M6 8c0 4 2.7 6 6 6s6-2 6-6" />
+                    <circle cx="12" cy="3" r="1.4" fill="#fff" stroke="none" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="font-serif text-white font-bold text-sm leading-tight tracking-tight">Wellness Management System</div>
+                  <div className="text-[#9FC2B4] font-semibold text-[10.5px] uppercase tracking-wider">Counsellor Portal</div>
+                </div>
+              </div>
+            ) : (
+              <h1 className="text-lg font-bold tracking-tight text-emerald-400 leading-tight">Wellness Management System</h1>
+            )}
+            <button
               onClick={() => setIsOpen(false)}
-              className="p-1 rounded-lg hover:bg-slate-800 lg:hidden text-gray-400 hover:text-white"
+              className={`p-1 rounded-lg lg:hidden text-gray-400 hover:text-white ${role === "counsellor" ? "hover:bg-white/5" : "hover:bg-slate-800"}`}
             >
               <X className="w-6 h-6" />
             </button>
@@ -116,8 +137,12 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium ${
                       isActive
-                        ? "bg-emerald-500 text-slate-900 shadow-lg shadow-emerald-500/20"
-                        : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+                        ? role === "counsellor"
+                          ? "bg-white/10 text-white border-l-4 border-[#7CD9BB] pl-3"
+                          : "bg-emerald-500 text-slate-900 shadow-lg shadow-emerald-500/20"
+                        : role === "counsellor"
+                          ? "text-[#BFDAD0] hover:bg-white/5 hover:text-white"
+                          : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
                     }`
                   }
                 >
@@ -132,7 +157,11 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
         {/* Logout Section */}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:bg-slate-800 hover:text-rose-300 transition w-full mt-auto"
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition w-full mt-auto ${
+            role === "counsellor"
+              ? "text-[#BFDAD0] border border-white/10 hover:bg-white/5 hover:text-white"
+              : "text-rose-400 hover:bg-slate-800 hover:text-rose-300"
+          }`}
         >
           <LogOut className="w-5 h-5" />
           Logout

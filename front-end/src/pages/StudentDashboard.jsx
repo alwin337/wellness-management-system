@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  BookOpen, 
-  FileText, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
+import {
+  Calendar,
+  Clock,
+  User,
+  BookOpen,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
   HelpCircle,
   TrendingUp,
   CalendarCheck,
   Wrench,
-  Star
+  Star,
+  History,
+  Info,
+  ArrowRight
 } from "lucide-react";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -28,6 +31,8 @@ import { getAllSchedules } from "../services/scheduleApi";
 import { getMyAppointments, createAppointment, cancelMyAppointment } from "../services/appointmentApi";
 import { createFacilityRequest } from "../services/facilityRequestApi";
 import { createReview } from "../services/reviewApi";
+import { getStudentSessionHistory } from "../services/sessionApi";
+import { getCounsellorDisplayName } from "../utils/nameHelper";
 
 const StudentDashboard = () => {
   const { tab } = useParams();
@@ -37,10 +42,11 @@ const StudentDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [schedules, setSchedules] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  
+  const [sessions, setSessions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Profile update form state
   const [profileName, setProfileName] = useState("");
   const [profileDept, setProfileDept] = useState("");
@@ -85,6 +91,33 @@ const StudentDashboard = () => {
       // Fetch appointments
       const appointmentRes = await getMyAppointments();
       setAppointments(appointmentRes.data.appointments || []);
+
+      // Fetch student session history (catch error silently in case student is not authorized yet)
+      let sessionList = [];
+      try {
+        const sessionRes = await getStudentSessionHistory(profileRes.data.user._id);
+        sessionList = sessionRes.data.sessions || [];
+      } catch (sessErr) {
+        console.warn("Failed to load student sessions from backend:", sessErr);
+        // Fallback: load from localStorage if present for local manual testing flows
+        try {
+          const fallbackGuidance = JSON.parse(localStorage.getItem("fallback_guidance") || "[]");
+          const studentGuidance = fallbackGuidance.filter(g => g.studentId === profileRes.data.user._id);
+          sessionList = studentGuidance.map(g => ({
+            _id: g.sessionId,
+            appointmentId: g.appointmentId,
+            feedback: g.feedback,
+            feedbackSent: g.feedbackSent,
+            counsellorId: {
+              name: g.counsellorName
+            },
+            sessionDate: g.date
+          }));
+        } catch (localErr) {
+          console.warn("Failed to parse fallback guidance:", localErr);
+        }
+      }
+      setSessions(sessionList);
 
     } catch (err) {
       console.error("Error loading student dashboard data:", err);
@@ -134,11 +167,11 @@ const StudentDashboard = () => {
 
     try {
       setSubmittingBooking(true);
-      
+
       // Determine counsellor ID from slot
       // Slot counsellor is populated.
       const counsellorId = bookingSlot.counsellor._id;
-      
+
       const payload = {
         counsellorId,
         scheduleId: bookingSlot._id,
@@ -148,7 +181,7 @@ const StudentDashboard = () => {
 
       await createAppointment(payload);
       toast.success("Appointment booked successfully!");
-      
+
       setBookingSlot(null);
       // Refresh data
       fetchData();
@@ -201,7 +234,7 @@ const StudentDashboard = () => {
       };
       await createFacilityRequest(payload);
       toast.success("Facility request submitted successfully!");
-      
+
       // Reset form
       setReqTitle("");
       setReqCategory("other");
@@ -233,7 +266,7 @@ const StudentDashboard = () => {
       };
       await createReview(payload);
       toast.success("Feedback submitted anonymously. Thank you!");
-      
+
       // Track reviewed appointment in local state
       setReviewedApptIds(prev => {
         const next = new Set(prev);
@@ -245,7 +278,7 @@ const StudentDashboard = () => {
       setReviewingAppt(null);
       setRating(5);
       setReviewComment("");
-      
+
       // Refresh dashboard data
       fetchData();
     } catch (err) {
@@ -263,7 +296,7 @@ const StudentDashboard = () => {
     if (scheduleWithCounsellor) {
       const c = scheduleWithCounsellor.counsellor;
       return {
-        name: c.user?.name || "College Counsellor",
+        name: getCounsellorDisplayName(c.user?.name || "College Counsellor"),
         email: c.user?.email || "wellness@college.edu",
         specialization: c.specialization || "Wellness & Mental Support",
         contactNumber: c.contactNumber || "N/A",
@@ -276,9 +309,7 @@ const StudentDashboard = () => {
     if (apptWithCounsellor && apptWithCounsellor.counsellorId) {
       const c = apptWithCounsellor.counsellorId;
       return {
-        // Backend appointment populate is counsellorId -> "name email specialization contactNumber"
-        // (even if backend has populate issues, let's fall back gracefully)
-        name: c.name || "College Counsellor",
+        name: getCounsellorDisplayName(c.name || "College Counsellor"),
         email: c.email || "wellness@college.edu",
         specialization: c.specialization || "Student Support & Counselling",
         contactNumber: c.contactNumber || "N/A",
@@ -296,6 +327,22 @@ const StudentDashboard = () => {
     };
   };
 
+  const getCounsellorNameForAppointment = (appt) => {
+    if (appt.counsellorId?.user?.name) {
+      return getCounsellorDisplayName(appt.counsellorId.user.name);
+    }
+    const cid = appt.counsellorId?._id || appt.counsellorId;
+    if (cid) {
+      const matchedSlot = schedules.find(s => s.counsellor?._id === cid || s.counsellor === cid);
+      if (matchedSlot?.counsellor?.user?.name) {
+        return getCounsellorDisplayName(matchedSlot.counsellor.user.name);
+      }
+    }
+    return appt.counsellorId?.name
+      ? getCounsellorDisplayName(appt.counsellorId.name)
+      : "Wellness Counsellor";
+  };
+
   const counsellor = getCounsellorDetails();
 
   // Statistics Computations
@@ -304,7 +351,7 @@ const StudentDashboard = () => {
     a => a.status === "pending" || a.status === "confirmed"
   ).length;
   const completedAppointmentsCount = appointments.filter(a => a.status === "completed").length;
-  
+
   const isProfileComplete = profile?.name && profile?.email && profile?.department;
   const profileStatusText = isProfileComplete ? "Complete" : "Incomplete";
 
@@ -327,7 +374,7 @@ const StudentDashboard = () => {
   return (
     <DashboardLayout role="student" user={profile}>
       <div className="space-y-8 animate-fade-in">
-        
+
         {/* Navigation Breadcrumb / Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 border-slate-100">
           <div>
@@ -347,9 +394,9 @@ const StudentDashboard = () => {
               {activeTab === "facility-requests" && "Submit a report for campus maintenance or room concerns."}
             </p>
           </div>
-          
+
           <div className="flex gap-2">
-            <Link 
+            <Link
               to="/student"
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeTab === "dashboard" ? "bg-slate-800 text-white" : "bg-white border text-slate-600 hover:bg-slate-50"
@@ -357,7 +404,7 @@ const StudentDashboard = () => {
             >
               Dashboard Overview
             </Link>
-            <Link 
+            <Link
               to="/student/schedule"
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeTab === "schedule" ? "bg-slate-800 text-white" : "bg-white border text-slate-600 hover:bg-slate-50"
@@ -381,6 +428,78 @@ const StudentDashboard = () => {
                 <p className="text-sm text-slate-600 mt-1">The Counselling Cell provides a confidential, non-judgmental environment to navigate challenges.</p>
               </div>
             </div>
+
+            {/* Counsellor Guidance Section */}
+            {(() => {
+              const guidanceSessions = sessions.filter(s => s.feedbackSent && s.feedback);
+              return (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 text-left">
+                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-500" />
+                    Counsellor Guidance
+                    {guidanceSessions.length > 0 && (
+                      <span className="ml-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider animate-pulse">
+                        New Guidance
+                      </span>
+                    )}
+                  </h2>
+
+                  {guidanceSessions.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">No counsellor guidance yet.</p>
+                  ) : (
+                    (() => {
+                      const sortedSessions = [...guidanceSessions].sort((a, b) => new Date(b.sessionDate || 0) - new Date(a.sessionDate || 0));
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {sortedSessions.map((session) => {
+                            const rawName = session.counsellorId?.name || "Student Counsellor";
+                            const displayName = rawName.startsWith("Dr.") ? rawName : `Dr. ${rawName}`;
+                            const formattedDate = new Date(session.sessionDate).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            });
+
+                            const reasonText = session.reason || appointments.find(a => a._id === (session.appointmentId?._id || session.appointmentId))?.reason || "";
+
+                            return (
+                              <div key={session._id} className="bg-emerald-50/40 border border-emerald-400/20 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition hover:shadow-sm">
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-start gap-4">
+                                    <div>
+                                      <h4 className="font-bold text-slate-800 text-sm">{displayName}</h4>
+                                      <span className="text-[10px] text-slate-400 block mt-0.5">{formattedDate}</span>
+                                    </div>
+                                    {reasonText && (
+                                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md max-w-[120px] truncate">
+                                        {reasonText}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-600 bg-white border border-slate-100 p-3.5 rounded-xl italic font-medium leading-relaxed">
+                                    "{session.feedback}"
+                                  </p>
+                                </div>
+                                <div className="flex justify-between items-center pt-1 border-t border-emerald-500/10">
+                                  <span className="text-[10px] text-slate-400 font-medium">Provided after your session</span>
+                                  <Link
+                                    to="/student/appointments"
+                                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 hover:underline"
+                                  >
+                                    View Session
+                                    <ArrowRight className="w-3 h-3" />
+                                  </Link>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Statistics Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -467,9 +586,9 @@ const StudentDashboard = () => {
                   </div>
 
                   {schedules.filter(s => s.isAvailable).length === 0 ? (
-                    <EmptyState 
-                      message="No schedules available" 
-                      subtitle="Check back later or contact the counselling desk." 
+                    <EmptyState
+                      message="No schedules available"
+                      subtitle="Check back later or contact the counselling desk."
                     />
                   ) : (
                     <div className="divide-y divide-slate-100">
@@ -497,7 +616,7 @@ const StudentDashboard = () => {
                               </div>
                             </div>
 
-                            <button 
+                            <button
                               onClick={() => startBooking(slot)}
                               className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition"
                             >
@@ -548,17 +667,17 @@ const StudentDashboard = () => {
             </h2>
 
             {schedules.filter(s => s.isAvailable).length === 0 ? (
-              <EmptyState 
-                message="No open schedules at this time" 
-                subtitle="All slots are currently booked. Please check back later." 
+              <EmptyState
+                message="No open schedules at this time"
+                subtitle="All slots are currently booked. Please check back later."
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {schedules
                   .filter(s => s.isAvailable)
                   .map((slot) => (
-                    <div 
-                      key={slot._id} 
+                    <div
+                      key={slot._id}
                       className="border border-slate-100 rounded-2xl p-5 hover:border-emerald-300 hover:shadow-md hover:shadow-emerald-500/5 transition flex flex-col justify-between bg-slate-50/50"
                     >
                       <div className="space-y-3">
@@ -611,7 +730,7 @@ const StudentDashboard = () => {
         {/* ------------------- APPOINTMENTS TAB ------------------- */}
         {activeTab === "appointments" && (
           <div className="space-y-8">
-            
+
             {/* Section 1: Upcoming Sessions */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b pb-4">
@@ -620,9 +739,9 @@ const StudentDashboard = () => {
               </h2>
 
               {appointments.filter(a => a.status === "pending" || a.status === "confirmed").length === 0 ? (
-                <EmptyState 
-                  message="No upcoming appointments scheduled" 
-                  subtitle="Use the Book Slots tab to coordinate a session with the counsellor." 
+                <EmptyState
+                  message="No upcoming appointments scheduled"
+                  subtitle="Use the Book Slots tab to coordinate a session with the counsellor."
                 />
               ) : (
                 <div className="overflow-x-auto">
@@ -660,7 +779,7 @@ const StudentDashboard = () => {
                                 {appt.startTime} - {appt.endTime}
                               </td>
                               <td className="py-4 text-slate-600 font-medium">
-                                {appt.counsellorId?.name || "Wellness Counsellor"}
+                                {getCounsellorNameForAppointment(appt)}
                               </td>
                               <td className="py-4 max-w-xs truncate text-slate-600 font-medium" title={appt.reason}>
                                 {appt.reason || "N/A"}
@@ -697,9 +816,9 @@ const StudentDashboard = () => {
               </h2>
 
               {appointments.filter(a => a.status === "completed" || a.status === "cancelled" || a.status === "rejected").length === 0 ? (
-                <EmptyState 
-                  message="No past sessions found" 
-                  subtitle="Your completed sessions and cancel logs will display here." 
+                <EmptyState
+                  message="No past sessions found"
+                  subtitle="Your completed sessions and cancel logs will display here."
                 />
               ) : (
                 <div className="space-y-4">
@@ -740,7 +859,7 @@ const StudentDashboard = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium text-slate-600">
                               <div>
                                 <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider mb-0.5">Counsellor</span>
-                                <span className="text-slate-700 font-bold">{appt.counsellorId?.name || "Wellness Counsellor"}</span>
+                                <span className="text-slate-700 font-bold">{getCounsellorNameForAppointment(appt)}</span>
                                 {appt.counsellorId?.specialization && (
                                   <span className="text-slate-400 block text-[10px] mt-0.5">({appt.counsellorId.specialization})</span>
                                 )}
@@ -758,6 +877,22 @@ const StudentDashboard = () => {
                                 <p className="leading-relaxed">{appt.notes}</p>
                               </div>
                             )}
+
+                            {/* Counsellor Guidance where available */}
+                            {(() => {
+                              const matchingSession = sessions.find(
+                                s => s.appointmentId === appt._id || s.appointmentId?._id === appt._id
+                              );
+                              if (matchingSession?.feedbackSent && matchingSession.feedback) {
+                                return (
+                                  <div className="bg-[#E6F1EC] p-4 rounded-xl border border-[#D3E8DF] text-xs text-[#134A3D] font-medium mt-3">
+                                    <span className="text-[10px] text-[#1F6F5C] block font-bold uppercase tracking-wider mb-1">Counsellor Guidance</span>
+                                    <p className="leading-relaxed whitespace-pre-wrap">"{matchingSession.feedback}"</p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
 
                           <div className="flex items-center self-end md:self-center gap-2">
@@ -911,13 +1046,13 @@ const StudentDashboard = () => {
       {bookingSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border p-6 space-y-5 animate-scale-up">
-            
+
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Confirm Counselling Booking</h3>
                 <p className="text-xs text-slate-500 mt-1">Please provide a reason to coordinate your support session.</p>
               </div>
-              <button 
+              <button
                 onClick={() => setBookingSlot(null)}
                 className="text-slate-400 hover:text-slate-600 rounded-lg p-1"
               >
@@ -1004,13 +1139,13 @@ const StudentDashboard = () => {
       {reviewingAppt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border p-6 space-y-5 animate-scale-up">
-            
+
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Review Counselling Session</h3>
                 <p className="text-xs text-slate-500 mt-1">Submit feedback for your session with <strong className="text-slate-700">{reviewingAppt.counsellorId?.name || "Counsellor"}</strong>.</p>
               </div>
-              <button 
+              <button
                 onClick={() => setReviewingAppt(null)}
                 className="text-slate-400 hover:text-slate-600 rounded-lg p-1"
               >
@@ -1038,10 +1173,10 @@ const StudentDashboard = () => {
                       onClick={() => setRating(star)}
                       className="p-1 hover:scale-115 transition"
                     >
-                      <Star 
+                      <Star
                         className={`w-8 h-8 ${
-                          star <= rating 
-                            ? "text-amber-400 fill-amber-400" 
+                          star <= rating
+                            ? "text-amber-400 fill-amber-400"
                             : "text-slate-200 fill-transparent"
                         }`}
                       />

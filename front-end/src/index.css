@@ -1,5 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 body {
   font-family: 'Poppins', sans-serif;
+}
+
+/* Anchor Counsellor Theme variables & overrides */
+.counsellor-portal-theme {
+  --bg-color: #F2F5F2;
+  --surface-color: #FFFFFF;
+  --surface-2-color: #FBFAF7;
+  --ink-color: #152420;
+  --ink-soft-color: #51625C;
+  --ink-faint-color: #8A9A94;
+  --line-color: #DFE6E0;
+  --line-soft-color: #EBF0EC;
+
+  --primary-color: #1F6F5C;
+  --primary-dark-color: #134A3D;
+  --primary-tint-color: #E6F1EC;
+  --primary-tint-2-color: #D3E8DF;
+
+  --moss-color: #7C9885;
+  --sky-color: #4E7FA0;
+  --sky-tint-color: #E7EFF4;
+  --gold-color: #B8903E;
+  --gold-tint-color: #FBF3E1;
+  --coral-color: #B25848;
+  --coral-tint-color: #F7E9E5;
+  --violet-color: #7A6BA6;
+  --violet-tint-color: #EEEAF6;
+}
+
+.counsellor-portal-theme .font-serif {
+  font-family: 'Fraunces', serif;
+}
+
+.counsellor-portal-theme .font-sans {
+  font-family: 'Inter', sans-serif;
+}
+
+.counsellor-portal-theme .font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Breathing active dot for availability */
+.counsellor-portal-theme .breathe-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3EAE85;
+  animation: breathe-anim 2.4s ease-in-out infinite;
+}
+
+@keyframes breathe-anim {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.55; }
+}
+
+/* Calm signature wave rule icon */
+.counsellor-portal-theme .wave-rule {
+  width: 100%;
+  height: 10px;
+  margin: 14px 0 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='10' viewBox='0 0 120 10'%3E%3Cpath d='M0 5 Q 15 0 30 5 T 60 5 T 90 5 T 120 5' fill='none' stroke='%23D3E8DF' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 120px 10px;
+  opacity: 0.9;
+}
+
+/* Overrides for state views under counsellor theme */
+.counsellor-portal-theme .bg-blue-600 {
+  background-color: #1F6F5C !important;
+}
+.counsellor-portal-theme .border-gray-200 {
+  border-color: #DFE6E0 !important;
+}
+.counsellor-portal-theme .bg-gray-50\/50 {
+  background-color: #FBFAF7 !important;
+}
+.counsellor-portal-theme .text-gray-700 {
+  color: #152420 !important;
+}
+.counsellor-portal-theme .text-gray-500 {
+  color: #51625C !important;
+}
+.counsellor-portal-theme .text-gray-400 {
+  color: #8A9A94 !important;
 }
