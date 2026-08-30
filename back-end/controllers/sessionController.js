@@ -371,6 +371,108 @@ const getSession = async (req, res) => {
   }
 };
 
+const getMySessionHistory = async (req, res) => {
+  try {
+    const sessions = await Session.find({
+      userId: req.user._id,
+    })
+      .populate(
+        "counsellorId",
+        "name specialization contactNumber"
+      )
+      .populate(
+        "appointmentId",
+        "appointmentDate startTime endTime reason status"
+      )
+      .sort({
+        sessionDate: -1,
+      });
+
+    res.status(200).json({
+      totalSessions: sessions.length,
+
+      sessions,
+    });
+  } catch (error) {
+    console.error(
+      "GET MY SESSION HISTORY ERROR:",
+      error.message
+    );
+
+    res.status(500).json({
+      message:
+        "Error fetching session history",
+
+      error: error.message,
+    });
+  }
+};
+
+const getMySessionFeedback = async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    })
+      .populate(
+        "counsellorId",
+        "name specialization contactNumber"
+      )
+      .populate(
+        "appointmentId",
+        "appointmentDate startTime endTime reason status"
+      );
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+      });
+    }
+
+    if (!session.feedbackSent) {
+      return res.status(404).json({
+        message:
+          "Feedback has not been provided yet",
+      });
+    }
+
+    res.status(200).json({
+      message:
+        "Session feedback fetched successfully",
+
+      feedback: {
+        sessionId: session._id,
+
+        counsellor:
+          session.counsellorId,
+
+        sessionDate:
+          session.sessionDate,
+
+        feedback:
+          session.feedback,
+
+        feedbackSent:
+          session.feedbackSent,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "GET MY SESSION FEEDBACK ERROR:",
+      error.message
+    );
+
+    res.status(500).json({
+      message:
+        "Error fetching session feedback",
+
+      error: error.message,
+    });
+  }
+};
+
+
+
 
 module.exports = {
   createSession,
@@ -379,5 +481,7 @@ module.exports = {
   getStudentSessionHistory,
   getSession,
   sendFeedback,
+  getMySessionHistory,
+  getMySessionFeedback,
 };
 
