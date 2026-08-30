@@ -29,6 +29,7 @@ const sessionSchema = new mongoose.Schema(
         feedback: {
             type: String,
             trim:true,
+            default:"",
         },
         feedbackSent: {
             type:Boolean,
