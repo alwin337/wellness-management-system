@@ -29,6 +29,7 @@ import { getUserProfile } from "../services/userApi";
 import { getAllCounsellors, addCounsellor, updateCounsellor, deleteCounsellor } from "../services/counsellorApi";
 import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
 import { getAllFacilityRequests, updateFacilityRequest } from "../services/facilityRequestApi";
+import { getCounsellingStatistics } from "../services/statisticsApi";
 
 const AdminDashboard = () => {
   const { tab } = useParams();
@@ -64,6 +65,9 @@ const AdminDashboard = () => {
   const [updateResponse, setUpdateResponse] = useState("");
   const [submittingUpdate, setSubmittingUpdate] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Statistics State
+  const [statistics, setStatistics] = useState(null);
 
   // Fetch all admin data
   const fetchData = async () => {
@@ -120,6 +124,14 @@ const AdminDashboard = () => {
         console.warn("Failed to load facility requests:", rErr);
       }
       setRequests(requestsList);
+
+      // 5. Get counselling statistics
+      try {
+        const statsRes = await getCounsellingStatistics();
+        setStatistics(statsRes.data.statistics);
+      } catch (statsErr) {
+        console.warn("Failed to load counselling statistics:", statsErr);
+      }
 
     } catch (err) {
       console.error("Admin dashboard load error:", err);
@@ -402,34 +414,36 @@ const AdminDashboard = () => {
             
             {/* Statistics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <StatCard
-                title="Wellness Counsellors"
-                value={counsellor ? 1 : 0}
-                subtitle={counsellor ? "Counsellor active" : "No counsellor configured"}
-                color="blue"
-              />
-              <StatCard
-                title="Total Schedule Slots"
-                value={totalSlotsCount}
-                subtitle="All generated slots"
-                color="purple"
-              />
-              <StatCard
-                title="Available Slots"
-                value={openSlotsCount}
-                subtitle="Unbooked available times"
-                color="green"
-              />
-              <StatCard
-                title="Booked Sessions"
-                value={bookedSlotsCount}
-                subtitle="Confirmed student bookings"
-                color="orange"
-              />
-            </div>
+                <StatCard
+                  title="Wellness Counsellors"
+                  value={statistics?.totalCounsellors ?? 0}
+                  subtitle={counsellor ? "Counsellor active" : "No counsellor configured"}
+                  color="blue"
+                />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+                <StatCard
+                  title="Total Students"
+                  value={statistics?.totalStudents ?? 0}
+                  subtitle="Registered students"
+                  color="purple"
+                />
+
+                <StatCard
+                  title="Total Appointments"
+                  value={statistics?.totalAppointments ?? 0}
+                  subtitle="All counselling appointments"
+                  color="green"
+                />
+
+                <StatCard
+                  title="Completed Sessions"
+                  value={statistics?.completedAppointments ?? 0}
+                  subtitle="Completed counselling sessions"
+                  color="orange"
+                />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Quick Info Box */}
               <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col justify-between">
                 <div>
