@@ -9,6 +9,8 @@ const {
   getStudentSessionHistory,
   getSession,
   sendFeedback,
+  getMySessionHistory,
+  getMySessionFeedback,
 } = require("../controllers/sessionController");
 
 const protect = require("../middleware/authMiddleware");
@@ -53,6 +55,18 @@ router.get(
   "/:id",
   protect,
   getSession
+);
+
+router.get(
+  "/my/history",
+  protect,
+  getMySessionHistory
+);
+
+router.get(
+  "/my/:id/feedback",
+  protect,
+  getMySessionFeedback
 );
 
 module.exports = router;
