@@ -15,7 +15,7 @@ const reviewRoutes = require('./routes/reviewRouter')
 const FacilityRequestRoutes = require("./routes/facilityrequestRouter")
 const assessmentRoutes = require("./routes/assessmentRouter")
 const chatbotRoutes = require("./routes/chatbotRoutes")
-
+const notificationRoutes = require("./routes/notificationRoutes")
 dotenv.config();
 
 connectDB();
@@ -88,6 +88,11 @@ app.use(
 app.use(
   "/api/chatbot",
   chatbotRoutes
+)
+
+app.use(
+  "/api/notifications",
+  notificationRoutes
 )
 const PORT = process.env.PORT || 5000;
 
