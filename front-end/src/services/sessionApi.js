@@ -15,8 +15,8 @@ export const getMySessions = () => {
   return API.get("/sessions/my");
 };
 
-export const getStudentSessionHistory = (studentId) => {
-  return API.get(`/sessions/student/${studentId}`);
+export const getStudentSessionHistory = () => {
+  return API.get("/sessions/my/history");
 };
 
 export const sendFeedback = (sessionId, feedback) => {

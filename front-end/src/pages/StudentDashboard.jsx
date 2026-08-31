@@ -104,7 +104,7 @@ const StudentDashboard = () => {
       // Fetch student session history (catch error silently in case student is not authorized yet)
       let sessionList = [];
       try {
-        const sessionRes = await getStudentSessionHistory(profileRes.data.user._id);
+        const sessionRes = await getStudentSessionHistory();
         sessionList = sessionRes.data.sessions || [];
       } catch (sessErr) {
         console.warn("Failed to load student sessions from backend:", sessErr);
