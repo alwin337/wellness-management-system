@@ -5,8 +5,9 @@ body {
   font-family: 'Poppins', sans-serif;
 }
 
-/* Anchor Counsellor Theme variables & overrides */
-.counsellor-portal-theme {
+/* Anchor Portal Theme variables & overrides */
+.counsellor-portal-theme,
+.admin-portal-theme {
   --bg-color: #F2F5F2;
   --surface-color: #FFFFFF;
   --surface-2-color: #FBFAF7;
@@ -32,20 +33,69 @@ body {
   --violet-tint-color: #EEEAF6;
 }
 
-.counsellor-portal-theme .font-serif {
+.counsellor-portal-theme .font-serif,
+.admin-portal-theme .font-serif {
   font-family: 'Fraunces', serif;
 }
 
-.counsellor-portal-theme .font-sans {
+.counsellor-portal-theme .font-sans,
+.admin-portal-theme .font-sans {
   font-family: 'Inter', sans-serif;
 }
 
-.counsellor-portal-theme .font-mono {
+.counsellor-portal-theme .font-mono,
+.admin-portal-theme .font-mono {
   font-family: 'IBM Plex Mono', monospace;
 }
 
+/* Status badges with dots */
+.badge-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px 3px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.badge-dot::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.badge-dot-pending { background: #FBF3E1; color: #8A6A20; }
+.badge-dot-pending::before { background: #C9A24B; }
+
+.badge-dot-confirmed { background: #E7EFF4; color: #2E5D7C; }
+.badge-dot-confirmed::before { background: #4E7FA0; }
+
+.badge-dot-completed { background: #E6F1EC; color: #1B5B4A; }
+.badge-dot-completed::before { background: #2E9276; }
+
+.badge-dot-cancelled { background: #F7E9E5; color: #93412F; }
+.badge-dot-cancelled::before { background: #B25848; }
+
+.badge-dot-active { background: #E6F1EC; color: #1B5B4A; }
+.badge-dot-active::before { background: #2E9276; }
+
+.badge-dot-inactive { background: #EDEDED; color: #6B6B6B; }
+.badge-dot-inactive::before { background: #9A9A9A; }
+
+.badge-dot-in-progress { background: #E7EFF4; color: #2E5D7C; }
+.badge-dot-in-progress::before { background: #4E7FA0; }
+
+.badge-dot-resolved { background: #E6F1EC; color: #1B5B4A; }
+.badge-dot-resolved::before { background: #2E9276; }
+
+.badge-dot-rejected { background: #F7E9E5; color: #93412F; }
+.badge-dot-rejected::before { background: #B25848; }
+
 /* Breathing active dot for availability */
-.counsellor-portal-theme .breathe-dot {
+.counsellor-portal-theme .breathe-dot,
+.admin-portal-theme .breathe-dot {
   display: inline-block;
   width: 7px;
   height: 7px;
@@ -60,7 +110,8 @@ body {
 }
 
 /* Calm signature wave rule icon */
-.counsellor-portal-theme .wave-rule {
+.counsellor-portal-theme .wave-rule,
+.admin-portal-theme .wave-rule {
   width: 100%;
   height: 10px;
   margin: 14px 0 20px;
@@ -70,27 +121,34 @@ body {
   opacity: 0.9;
 }
 
-/* Overrides for state views under counsellor theme */
-.counsellor-portal-theme .bg-blue-600 {
+/* Overrides for state views under theme */
+.counsellor-portal-theme .bg-blue-600,
+.admin-portal-theme .bg-blue-600 {
   background-color: #1F6F5C !important;
 }
-.counsellor-portal-theme .border-gray-200 {
+.counsellor-portal-theme .border-gray-200,
+.admin-portal-theme .border-gray-200 {
   border-color: #DFE6E0 !important;
 }
-.counsellor-portal-theme .bg-gray-50\/50 {
+.counsellor-portal-theme .bg-gray-50\/50,
+.admin-portal-theme .bg-gray-50\/50 {
   background-color: #FBFAF7 !important;
 }
-.counsellor-portal-theme .text-gray-700 {
+.counsellor-portal-theme .text-gray-700,
+.admin-portal-theme .text-gray-700 {
   color: #152420 !important;
 }
-.counsellor-portal-theme .text-gray-500 {
+.counsellor-portal-theme .text-gray-500,
+.admin-portal-theme .text-gray-500 {
   color: #51625C !important;
 }
-.counsellor-portal-theme .text-gray-400 {
+.counsellor-portal-theme .text-gray-400,
+.admin-portal-theme .text-gray-400 {
   color: #8A9A94 !important;
 }
 
-/* Clickable pointer rules */
-a, button, select, input[type="submit"], input[type="button"], [role="button"], .cursor-pointer, .nav-item, .qa-card, .mood-opt {
+/* Clickable pointer rules across all portals */
+a, button, select, input[type="submit"], input[type="button"], [role="button"],
+.cursor-pointer, .nav-item, .qa-card, .mood-opt, .chip, .section-link, .card-clickable, .tab-btn {
   cursor: pointer !important;
 }
