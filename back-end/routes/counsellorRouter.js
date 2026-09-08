@@ -1,19 +1,48 @@
-const express = require('express')
-const router = express.Router()
-const {addCounsellor,
+const express = require("express");
+
+const router = express.Router();
+
+const {
+  addCounsellor,
   getAllCounsellors,
+  getActiveCounsellors,
   getCounsellor,
   updateCounsellor,
-  deleteCounsellor,} = require('../controllers/counsellorController')
-const protect = require('../middleware/authMiddleware')
-const {adminOnly} = require('../middleware/adminMiddleware')
+  deactivateCounsellor,
+  activateCounsellor,
+} = require("../controllers/counsellorController");
 
-router.use(protect,adminOnly)
-router.get('/',protect,getAllCounsellors)
-router.get('/:id',protect,getCounsellor)
-router.put('/:id',protect,adminOnly,updateCounsellor)
-router.post('/',protect,adminOnly, addCounsellor)
+const protect = require("../middleware/authMiddleware");
+const { adminOnly } = require("../middleware/adminMiddleware");
 
-router.delete('/:id', deleteCounsellor)
+// All counsellor routes require login and admin access
+router.use(protect, adminOnly);
 
-module.exports = router
+// Get all counsellors
+router.get("/", getAllCounsellors);
+
+// Get active counsellors
+router.get("/active", getActiveCounsellors);
+
+// Get single counsellor
+router.get("/:id", getCounsellor);
+
+// Add counsellor
+router.post("/", addCounsellor);
+
+// Update counsellor
+router.put("/:id", updateCounsellor);
+
+// Deactivate counsellor
+router.patch(
+  "/:id/deactivate",
+  deactivateCounsellor
+);
+
+// Activate counsellor
+router.patch(
+  "/:id/activate",
+  activateCounsellor
+);
+
+module.exports = router;
