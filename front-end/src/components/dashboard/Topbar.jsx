@@ -1,15 +1,20 @@
-import { Menu, Search, Bell } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Menu, Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { getCounsellorDisplayName, getCounsellorInitials } from "../../utils/nameHelper";
+import NotificationBell from "../NotificationBell";
 
 const Topbar = ({ user, role, onMenuClick }) => {
   const isCounsellor = role === "counsellor";
   const isAdmin = role === "admin";
   const location = useLocation();
-  const navigate = useNavigate();
   const path = location.pathname;
 
   const getPageDetails = () => {
+    // Notification routes
+    if (path.includes("notifications")) {
+      return { title: "Notifications", subtitle: "Stay updated with your latest alerts" };
+    }
+
     // Student routes
     if (path.startsWith("/student/profile")) {
       return { title: "Profile", subtitle: "Your personal information" };
@@ -112,19 +117,8 @@ const Topbar = ({ user, role, onMenuClick }) => {
 
       {/* Right: Actions & User Avatar */}
       <div className="flex items-center gap-3">
-        {isAdmin && (
-          <button
-            onClick={() => navigate("/admin/requests")}
-            className="relative w-8.5 h-8.5 rounded-lg border border-[#DFE6E0] bg-white hover:bg-[#FBFAF7] flex items-center justify-center text-[#51625C] transition cursor-pointer"
-            title="Campus Notifications & Requests"
-            aria-label="Notifications"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="absolute -top-1 -right-1 bg-[#B25848] text-white text-[9px] font-bold font-mono min-w-[15px] h-[15px] rounded-full flex items-center justify-center px-1 border-2 border-white">
-              !
-            </span>
-          </button>
-        )}
+        {/* Notification Bell (for all authenticated users) */}
+        <NotificationBell variant="topbar" />
 
         {isCounsellor ? (
           <div className="w-9 h-9 rounded-xl bg-[#D3E8DF] text-[#134A3D] flex items-center justify-center font-bold font-serif text-xs shadow-2xs">

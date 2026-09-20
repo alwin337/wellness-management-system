@@ -3,6 +3,7 @@ import { ToastContainer } from "react-toastify";
 
 import PublicLayout from "./layouts/PublicLayouts";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { NotificationProvider } from "./context/NotificationContext";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -14,10 +15,11 @@ import AdminDashboard from "./pages/AdminDashboard";
 import CounsellorSessions from "./pages/CounsellorSessions";
 import Assessments from "./pages/Assessments";
 import Chatbot from "./pages/Chatbot";
+import Notifications from "./pages/Notifications";
 
 function App() {
   return (
-    <>
+    <NotificationProvider>
       <Routes>
         {/* Public Pages */}
         <Route element={<PublicLayout />}>
@@ -59,6 +61,26 @@ function App() {
           }
         />
 
+        {/* Notifications (Dedicated Page for Authenticated Users) */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute allowedRoles={["student", "counsellor", "admin"]}>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Student Notifications */}
+        <Route
+          path="/student/notifications"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/student/:tab"
           element={
@@ -88,6 +110,16 @@ function App() {
           }
         />
 
+        {/* Counsellor Notifications */}
+        <Route
+          path="/counsellor/notifications"
+          element={
+            <ProtectedRoute allowedRoles={["counsellor"]}>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Other Counsellor Tabs */}
         <Route
           path="/counsellor/:tab"
@@ -108,6 +140,16 @@ function App() {
           }
         />
 
+        {/* Admin Notifications */}
+        <Route
+          path="/admin/notifications"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/admin/:tab"
           element={
@@ -123,7 +165,7 @@ function App() {
         autoClose={3000}
         theme="colored"
       />
-    </>
+    </NotificationProvider>
   );
 }
 
