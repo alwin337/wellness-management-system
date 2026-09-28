@@ -2,6 +2,7 @@ const Session = require("../models/Session");
 const Appointment = require("../models/Appointment");
 const Counsellor = require("../models/Counsellor");
 const User = require("../models/User");
+const { notifySessionFeedback } = require("../services/notificationService");
 
 const getLoggedInCounsellor = async (userId) => {
   return await Counsellor.findOne({
@@ -228,6 +229,7 @@ const getStudentSessionHistory = async (req, res) => {
 
 //send feedback
 
+// Send feedback to student
 const sendFeedback = async (req, res) => {
   try {
     const { feedback } = req.body;
@@ -238,9 +240,8 @@ const sendFeedback = async (req, res) => {
       });
     }
 
-    const counsellor = await getLoggedInCounsellor(
-      req.user._id
-    );
+    const counsellor =
+      await getLoggedInCounsellor(req.user._id);
 
     if (!counsellor) {
       return res.status(404).json({
@@ -248,9 +249,8 @@ const sendFeedback = async (req, res) => {
       });
     }
 
-    const session = await Session.findById(
-      req.params.id
-    );
+    const session =
+      await Session.findById(req.params.id);
 
     if (!session) {
       return res.status(404).json({
@@ -270,9 +270,10 @@ const sendFeedback = async (req, res) => {
     }
 
     // Make sure appointment is completed
-    const appointment = await Appointment.findById(
-      session.appointmentId
-    );
+    const appointment =
+      await Appointment.findById(
+        session.appointmentId
+      );
 
     if (!appointment) {
       return res.status(404).json({
@@ -292,6 +293,12 @@ const sendFeedback = async (req, res) => {
     session.feedbackSent = true;
 
     await session.save();
+
+    // Notify student that feedback is available
+    await notifySessionFeedback(
+      session.userId,
+      session._id
+    );
 
     res.status(200).json({
       message: "Feedback sent successfully",

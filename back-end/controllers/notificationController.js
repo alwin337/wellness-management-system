@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const Notification =
-  require("../models/notification");
+  require("../models/Notification");
 
 
 // Get my notifications
