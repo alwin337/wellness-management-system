@@ -73,14 +73,21 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     ],
     admin: [
       { name: "Dashboard", path: "/admin" },
-      { name: "Students", path: "/admin/students" },
-      { name: "Counsellor", path: "/admin/counsellor" },
-      { name: "Schedules", path: "/admin/schedules" },
+      { name: "Student Management", path: "/admin/students" },
+      { name: "Counsellor Management", path: "/admin/counsellor" },
+      { name: "Schedule Management", path: "/admin/schedules" },
       { name: "Facility Requests", path: "/admin/requests" },
     ],
   };
 
   const currentMenu = menus[role] || [];
+  const isThemed = role === "counsellor" || role === "student" || role === "admin";
+
+  const getPortalSubtitle = () => {
+    if (role === "admin") return "Admin Console";
+    if (role === "counsellor") return "Counsellor Portal";
+    return "Student Wellness";
+  };
 
   return (
     <>
@@ -93,35 +100,31 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
       )}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 p-6 flex flex-col justify-between
+        fixed inset-y-0 left-0 z-50 w-64 p-5 flex flex-col justify-between
         transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        ${role === "counsellor" || role === "student" ? "bg-[#134A3D] text-white" : "bg-slate-900 text-white"}
+        ${isThemed ? "bg-[#134A3D] text-[#EAF3EF]" : "bg-slate-900 text-white"}
       `}>
         <div>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            {role === "counsellor" || role === "student" ? (
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3E9C82] to-[#1F6F5C] flex items-center justify-center flex-shrink-0">
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                    <path d="M12 3v18M6 8c0 4 2.7 6 6 6s6-2 6-6" />
-                    <circle cx="12" cy="3" r="1.4" fill="#fff" stroke="none" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="font-serif text-white font-bold text-sm leading-tight tracking-tight">Wellness Management System</div>
-                  <div className="text-[#9FC2B4] font-semibold text-[10.5px] uppercase tracking-wider">
-                    {role === "counsellor" ? "Counsellor Portal" : "Student Wellness"}
-                  </div>
+          {/* Header / Brand Mark */}
+          <div className="flex items-center justify-between mb-6 pb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#1F6F5C] flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                  <path d="M12 3v18M6 8c0 4 2.7 6 6 6s6-2 6-6" />
+                  <circle cx="12" cy="3" r="1.4" fill="#fff" stroke="none" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-serif text-white font-bold text-sm leading-tight tracking-tight">Wellness System</div>
+                <div className="text-[#9FC2B4] font-semibold text-[10px] uppercase tracking-wider mt-0.5">
+                  {getPortalSubtitle()}
                 </div>
               </div>
-            ) : (
-              <h1 className="text-lg font-bold tracking-tight text-emerald-400 leading-tight">Wellness Management System</h1>
-            )}
+            </div>
             <button
               onClick={() => setIsOpen(false)}
-              className={`p-1 rounded-lg lg:hidden text-gray-400 hover:text-white ${role === "counsellor" || role === "student" ? "hover:bg-white/5" : "hover:bg-slate-800"}`}
+              className="p-1 rounded-lg lg:hidden text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
@@ -131,7 +134,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
           <nav className="space-y-1">
             {currentMenu.map((item, idx) => {
               if (item.isDivider) {
-                return <div key={`div-${idx}`} className="h-px bg-white/10 my-4 mx-2" />;
+                return <div key={`div-${idx}`} className="h-px bg-white/10 my-3 mx-2" />;
               }
               const Icon = menuIcons[item.path] || LayoutDashboard;
               return (
@@ -141,19 +144,15 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
                   end={item.path === "/student" || item.path === "/counsellor" || item.path === "/admin"}
                   onClick={() => setIsOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm font-medium ${
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition text-[13.5px] font-medium cursor-pointer relative ${
                       isActive
-                        ? role === "counsellor" || role === "student"
-                          ? "bg-white/10 text-white border-l-4 border-[#7CD9BB] pl-3"
-                          : "bg-emerald-500 text-slate-900 shadow-lg shadow-emerald-500/20"
-                        : role === "counsellor" || role === "student"
-                          ? "text-[#BFDAD0] hover:bg-white/5 hover:text-white"
-                          : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+                        ? "bg-white/12 text-white font-semibold before:content-[''] before:absolute before:-left-5 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-[#7CD9BB] before:rounded-r"
+                        : "text-[#BFDAD0] hover:bg-white/6 hover:text-white"
                     }`
                   }
                 >
-                  <Icon className="w-5 h-5" />
-                  {item.name}
+                  <Icon className="w-4.5 h-4.5 flex-shrink-0 opacity-90" />
+                  <span>{item.name}</span>
                 </NavLink>
               );
             })}
@@ -161,17 +160,15 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
         </div>
 
         {/* Logout Section */}
-        <button
-          onClick={handleLogout}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition w-full mt-auto ${
-            role === "counsellor" || role === "student"
-              ? "text-[#BFDAD0] border border-white/10 hover:bg-white/5 hover:text-white"
-              : "text-rose-400 hover:bg-slate-800 hover:text-rose-300"
-          }`}
-        >
-          <LogOut className="w-5 h-5" />
-          Logout
-        </button>
+        <div className="pt-4 border-t border-white/10 mt-auto">
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg text-xs font-semibold text-[#EAF3EF] border border-white/15 hover:bg-white/8 transition w-full cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
       </aside>
     </>
   );

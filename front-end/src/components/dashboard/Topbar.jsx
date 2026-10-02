@@ -1,13 +1,16 @@
-import { Menu } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Menu, Search, Bell } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getCounsellorDisplayName, getCounsellorInitials } from "../../utils/nameHelper";
 
 const Topbar = ({ user, role, onMenuClick }) => {
   const isCounsellor = role === "counsellor";
+  const isAdmin = role === "admin";
   const location = useLocation();
+  const navigate = useNavigate();
   const path = location.pathname;
 
   const getPageDetails = () => {
+    // Student routes
     if (path.startsWith("/student/profile")) {
       return { title: "Profile", subtitle: "Your personal information" };
     }
@@ -29,6 +32,24 @@ const Topbar = ({ user, role, onMenuClick }) => {
     if (path.startsWith("/student")) {
       return { title: "Dashboard", subtitle: "Welcome back to your wellness space" };
     }
+
+    // Admin routes
+    if (path.startsWith("/admin/students")) {
+      return { title: "Student Management", subtitle: "Enrolled students and activity" };
+    }
+    if (path.startsWith("/admin/counsellor")) {
+      return { title: "Counsellor Management", subtitle: "Accounts, specializations and availability" };
+    }
+    if (path.startsWith("/admin/schedules")) {
+      return { title: "Schedule Management", subtitle: "Availability slots and session bookings" };
+    }
+    if (path.startsWith("/admin/requests")) {
+      return { title: "Facility Requests", subtitle: "Campus maintenance reports and resolutions" };
+    }
+    if (path.startsWith("/admin")) {
+      return { title: "Dashboard", subtitle: "System overview and platform activity" };
+    }
+
     return {
       title: `Welcome, ${user?.name || "User"}`,
       subtitle: `${role?.charAt(0).toUpperCase() + role?.slice(1)} Dashboard`
@@ -37,20 +58,27 @@ const Topbar = ({ user, role, onMenuClick }) => {
 
   const details = getPageDetails();
 
+  const getAdminInitials = () => {
+    if (!user?.name) return "AD";
+    const parts = user.name.trim().split(" ");
+    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    return user.name.slice(0, 2).toUpperCase();
+  };
+
   return (
-    <div className={`border-b px-6 py-4 flex items-center justify-between transition-colors ${
-      isCounsellor || role === "student" ? "bg-white border-[#DFE6E0]" : "bg-white border-b"
+    <header className={`border-b px-5 md:px-7 py-3.5 flex items-center justify-between transition-colors sticky top-0 z-30 ${
+      isCounsellor || role === "student" || isAdmin ? "bg-white border-[#DFE6E0]" : "bg-white border-b"
     }`}>
-      <div className="flex items-center gap-3">
+      {/* Left: Hamburger & Page Titles */}
+      <div className="flex items-center gap-3 md:gap-4">
         <button
           onClick={onMenuClick}
-          className={`p-1.5 rounded-lg lg:hidden transition ${
-            isCounsellor || role === "student" ? "hover:bg-[#EBF0EC] text-[#51625C]" : "hover:bg-slate-100 text-slate-600"
-          }`}
+          className="p-1.5 rounded-lg lg:hidden transition hover:bg-[#EBF0EC] text-[#51625C] cursor-pointer"
           aria-label="Open sidebar"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-5 h-5" />
         </button>
+
         <div>
           {isCounsellor ? (
             <>
@@ -63,10 +91,10 @@ const Topbar = ({ user, role, onMenuClick }) => {
             </>
           ) : (
             <>
-              <h2 className="text-lg md:text-xl font-bold text-slate-800 font-serif">
+              <h2 className="text-lg md:text-[19px] font-bold text-[#152420] font-serif leading-tight">
                 {details.title}
               </h2>
-              <p className="text-xs text-slate-500 font-medium font-sans">
+              <p className="text-xs text-[#8A9A94] font-medium font-sans mt-0.5">
                 {details.subtitle}
               </p>
             </>
@@ -74,18 +102,51 @@ const Topbar = ({ user, role, onMenuClick }) => {
         </div>
       </div>
 
+      {/* Middle: Search bar for Admin (Desktop) */}
+      {isAdmin && (
+        <div className="hidden md:flex items-center gap-2 bg-[#FBFAF7] border border-[#DFE6E0] rounded-lg px-3.5 py-1.5 text-xs text-[#8A9A94] w-72 lg:w-80 shadow-2xs">
+          <Search className="w-3.5 h-3.5 flex-shrink-0 text-[#8A9A94]" />
+          <span className="truncate">Search students, schedules, requests…</span>
+        </div>
+      )}
+
+      {/* Right: Actions & User Avatar */}
       <div className="flex items-center gap-3">
+        {isAdmin && (
+          <button
+            onClick={() => navigate("/admin/requests")}
+            className="relative w-8.5 h-8.5 rounded-lg border border-[#DFE6E0] bg-white hover:bg-[#FBFAF7] flex items-center justify-center text-[#51625C] transition cursor-pointer"
+            title="Campus Notifications & Requests"
+            aria-label="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute -top-1 -right-1 bg-[#B25848] text-white text-[9px] font-bold font-mono min-w-[15px] h-[15px] rounded-full flex items-center justify-center px-1 border-2 border-white">
+              !
+            </span>
+          </button>
+        )}
+
         {isCounsellor ? (
-          <div className="w-10 h-10 rounded-full bg-[#D3E8DF] text-[#134A3D] flex items-center justify-center font-bold font-serif shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-[#D3E8DF] text-[#134A3D] flex items-center justify-center font-bold font-serif text-xs shadow-2xs">
             {getCounsellorInitials(user?.name || "Sara Mathew")}
           </div>
+        ) : isAdmin ? (
+          <div className="flex items-center gap-2.5 pl-2 border-l border-[#DFE6E0]">
+            <div className="w-9 h-9 rounded-xl bg-[#D3E8DF] text-[#134A3D] flex items-center justify-center font-bold font-serif text-xs shadow-2xs flex-shrink-0">
+              {getAdminInitials()}
+            </div>
+            <div className="hidden sm:block text-left leading-tight">
+              <div className="text-xs font-bold text-[#152420] truncate max-w-[130px]">{user?.name || "System Admin"}</div>
+              <div className="text-[10.5px] text-[#8A9A94] font-medium">Administrator</div>
+            </div>
+          </div>
         ) : (
-          <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-600/10">
+          <div className="w-9 h-9 rounded-full bg-[#1F6F5C] text-white flex items-center justify-center font-bold text-xs shadow-sm">
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
         )}
       </div>
-    </div>
+    </header>
   );
 };
 
