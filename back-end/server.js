@@ -16,6 +16,7 @@ const FacilityRequestRoutes = require("./routes/facilityrequestRouter")
 const assessmentRoutes = require("./routes/assessmentRouter")
 const chatbotRoutes = require("./routes/chatbotRoutes")
 const notificationRoutes = require("./routes/notificationRoutes")
+const availableCounsellorRoutes = require("./routes/availableCounsellorRouter")
 dotenv.config();
 
 connectDB();
@@ -94,6 +95,12 @@ app.use(
   "/api/notifications",
   notificationRoutes
 )
+
+app.use(
+  "/api/available-counsellors",
+  availableCounsellorRoutes
+)
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
