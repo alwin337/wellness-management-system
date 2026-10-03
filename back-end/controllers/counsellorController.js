@@ -2,13 +2,9 @@ const User = require("../models/User");
 const Counsellor = require("../models/Counsellor");
 const bcrypt = require("bcryptjs");
 
-
-// =====================================================
-// ADD COUNSELLOR
+// Add counsellor
 // POST /api/counsellors
 // ADMIN ONLY
-// =====================================================
-
 const addCounsellor = async (req, res) => {
   try {
     const {
@@ -63,6 +59,7 @@ const addCounsellor = async (req, res) => {
       user: user._id,
       specialization,
       contactNumber,
+      isActive: true,
     });
 
     res.status(201).json({
@@ -76,11 +73,10 @@ const addCounsellor = async (req, res) => {
         role: user.role,
         specialization: counsellor.specialization,
         contactNumber: counsellor.contactNumber,
+        isActive: counsellor.isActive,
       },
     });
-
   } catch (error) {
-
     console.error(
       "CREATE COUNSELLOR ERROR:",
       error.message
@@ -93,27 +89,29 @@ const addCounsellor = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// GET ALL COUNSELLORS
+// Get all counsellors
 // GET /api/counsellors
-// LOGGED-IN USERS
-// =====================================================
-
+// ADMIN ONLY
 const getAllCounsellors = async (req, res) => {
   try {
-
     const counsellors = await Counsellor.find()
       .populate(
         "user",
-        "name email role"
-      );
+        "name email role department"
+      )
+      .sort({
+        createdAt: -1,
+      });
 
     res.status(200).json({
+      total: counsellors.length,
       counsellors,
     });
-
   } catch (error) {
+    console.error(
+      "GET ALL COUNSELLORS ERROR:",
+      error.message
+    );
 
     res.status(500).json({
       message: "Server error fetching counsellors",
@@ -122,22 +120,50 @@ const getAllCounsellors = async (req, res) => {
   }
 };
 
+// Get active counsellors
+// GET /api/counsellors/active
+// LOGGED-IN USERS
+const getActiveCounsellors = async (req, res) => {
+  try {
+    const counsellors = await Counsellor.find({
+      isActive: true,
+    })
+      .populate(
+        "user",
+        "name email role department"
+      )
+      .sort({
+        createdAt: -1,
+      });
 
-// =====================================================
-// GET SINGLE COUNSELLOR
+    res.status(200).json({
+      total: counsellors.length,
+      counsellors,
+    });
+  } catch (error) {
+    console.error(
+      "GET ACTIVE COUNSELLORS ERROR:",
+      error.message
+    );
+
+    res.status(500).json({
+      message: "Server error fetching active counsellors",
+      error: error.message,
+    });
+  }
+};
+
+// Get single counsellor
 // GET /api/counsellors/:id
 // LOGGED-IN USERS
-// =====================================================
-
 const getCounsellor = async (req, res) => {
   try {
-
     const counsellor =
       await Counsellor.findById(
         req.params.id
       ).populate(
         "user",
-        "name email role"
+        "name email role department"
       );
 
     if (!counsellor) {
@@ -149,8 +175,11 @@ const getCounsellor = async (req, res) => {
     res.status(200).json({
       counsellor,
     });
-
   } catch (error) {
+    console.error(
+      "GET COUNSELLOR ERROR:",
+      error.message
+    );
 
     res.status(500).json({
       message:
@@ -160,16 +189,11 @@ const getCounsellor = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// UPDATE COUNSELLOR
+// Update counsellor
 // PUT /api/counsellors/:id
 // ADMIN ONLY
-// =====================================================
-
 const updateCounsellor = async (req, res) => {
   try {
-
     const counsellor =
       await Counsellor.findById(
         req.params.id
@@ -200,20 +224,13 @@ const updateCounsellor = async (req, res) => {
       contactNumber,
     } = req.body;
 
-
-    // ==========================================
-    // UPDATE USER INFORMATION
-    // ==========================================
-
+    // Update user information
     if (name) {
       user.name = name;
     }
 
-
     if (email && email !== user.email) {
-
-      // Check whether another user already
-      // has this email
+      // Check whether another user has this email
       const emailExists =
         await User.findOne({
           email,
@@ -229,11 +246,7 @@ const updateCounsellor = async (req, res) => {
       user.email = email;
     }
 
-
-    // ==========================================
-    // UPDATE COUNSELLOR INFORMATION
-    // ==========================================
-
+    // Update counsellor information
     if (specialization) {
       counsellor.specialization =
         specialization;
@@ -244,11 +257,9 @@ const updateCounsellor = async (req, res) => {
         contactNumber;
     }
 
-
     // Save both documents
     await user.save();
     await counsellor.save();
-
 
     res.status(200).json({
       message:
@@ -264,11 +275,10 @@ const updateCounsellor = async (req, res) => {
           counsellor.specialization,
         contactNumber:
           counsellor.contactNumber,
+        isActive: counsellor.isActive,
       },
     });
-
   } catch (error) {
-
     console.error(
       "UPDATE COUNSELLOR ERROR:",
       error.message
@@ -281,16 +291,11 @@ const updateCounsellor = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// DELETE COUNSELLOR
-// DELETE /api/counsellors/:id
+// Deactivate counsellor
+// PATCH /api/counsellors/:id/deactivate
 // ADMIN ONLY
-// =====================================================
-
-const deleteCounsellor = async (req, res) => {
+const deactivateCounsellor = async (req, res) => {
   try {
-
     const counsellor =
       await Counsellor.findById(
         req.params.id
@@ -302,48 +307,96 @@ const deleteCounsellor = async (req, res) => {
       });
     }
 
+    // Check if already inactive
+    if (!counsellor.isActive) {
+      return res.status(400).json({
+        message: "Counsellor is already inactive",
+      });
+    }
 
-    // Delete linked User account
-    await User.findByIdAndDelete(
-      counsellor.user
-    );
+    counsellor.isActive = false;
 
-
-    // Delete counsellor profile
-    await Counsellor.findByIdAndDelete(
-      req.params.id
-    );
-
+    await counsellor.save();
 
     res.status(200).json({
       message:
-        "Counsellor deleted successfully",
+        "Counsellor deactivated successfully",
+
+      counsellor: {
+        id: counsellor._id,
+        isActive: counsellor.isActive,
+      },
     });
-
   } catch (error) {
-
     console.error(
-      "DELETE COUNSELLOR ERROR:",
+      "DEACTIVATE COUNSELLOR ERROR:",
       error.message
     );
 
     res.status(500).json({
       message:
-        "Error while removing counsellor",
+        "Error deactivating counsellor",
       error: error.message,
     });
   }
 };
 
+// Activate counsellor
+// PATCH /api/counsellors/:id/activate
+// ADMIN ONLY
+const activateCounsellor = async (req, res) => {
+  try {
+    const counsellor =
+      await Counsellor.findById(
+        req.params.id
+      );
 
-// =====================================================
-// EXPORT
-// =====================================================
+    if (!counsellor) {
+      return res.status(404).json({
+        message: "Counsellor record not found",
+      });
+    }
+
+    // Check if already active
+    if (counsellor.isActive) {
+      return res.status(400).json({
+        message: "Counsellor is already active",
+      });
+    }
+
+    counsellor.isActive = true;
+
+    await counsellor.save();
+
+    res.status(200).json({
+      message:
+        "Counsellor activated successfully",
+
+      counsellor: {
+        id: counsellor._id,
+        isActive: counsellor.isActive,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "ACTIVATE COUNSELLOR ERROR:",
+      error.message
+    );
+
+    res.status(500).json({
+      message:
+        "Error activating counsellor",
+      error: error.message,
+    });
+  }
+};
 
 module.exports = {
   addCounsellor,
   getAllCounsellors,
+  getActiveCounsellors,
   getCounsellor,
   updateCounsellor,
-  deleteCounsellor,
+  deactivateCounsellor,
+  activateCounsellor,
 };
