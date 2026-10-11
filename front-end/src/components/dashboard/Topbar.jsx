@@ -83,7 +83,7 @@ const Topbar = ({ user, role, onMenuClick }) => {
           {isCounsellor ? (
             <>
               <h2 className="text-lg md:text-xl font-bold text-[#152420] font-serif">
-                {getCounsellorDisplayName(user?.name || "Sara Mathew")}
+                {getCounsellorDisplayName(user?.name)}
               </h2>
               <div className="flex items-center gap-1.5 text-xs text-[#7C9885] font-semibold mt-0.5">
                 <span className="breathe-dot" /> Available Counsellor
@@ -128,7 +128,7 @@ const Topbar = ({ user, role, onMenuClick }) => {
 
         {isCounsellor ? (
           <div className="w-9 h-9 rounded-xl bg-[#D3E8DF] text-[#134A3D] flex items-center justify-center font-bold font-serif text-xs shadow-2xs">
-            {getCounsellorInitials(user?.name || "Sara Mathew")}
+            {getCounsellorInitials(user?.name)}
           </div>
         ) : isAdmin ? (
           <div className="flex items-center gap-2.5 pl-2 border-l border-[#DFE6E0]">

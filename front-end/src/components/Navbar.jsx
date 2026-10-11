@@ -212,17 +212,37 @@ export default function Navbar() {
 
 
         {/*LOGIN*/}
-        <Link
-          to="/login"
-          className="
-            text-[#2f4f3e]
-            font-medium
-            hover:text-[#7cb342]
-            transition-colors
-          "
-        >
-          Log In
-        </Link>
+          {user ? (
+          <Link
+            to={
+              user.role === "admin"
+                ? "/admin"
+                : user.role === "counsellor"
+                ? "/counsellor"
+                : "/student"
+            }
+            className="
+              text-[#2f4f3e]
+              font-medium
+              hover:text-[#7cb342]
+              transition-colors
+            "
+          >
+            Dashboard
+          </Link>
+        ) : (
+          <Link
+            to="/login"
+            className="
+              text-[#2f4f3e]
+              font-medium
+              hover:text-[#7cb342]
+              transition-colors
+            "
+          >
+            Log In
+          </Link>
+        )}
       </div>
 
 

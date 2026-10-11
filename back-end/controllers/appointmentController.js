@@ -2,6 +2,11 @@ const Appointment = require("../models/Appointment");
 const Schedule = require("../models/Schedule");
 const Counsellor = require("../models/Counsellor");
 
+const {
+  notifyAppointmentConfirmed,
+  notifyAppointmentCancelled,
+  notifyAppointmentCompleted,
+} = require("../services/notificationService");
 
 // PATIENT: BOOK APPOINTMENT
 
@@ -58,6 +63,11 @@ const createAppointment = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(
+      "CREATE APPOINTMENT ERROR:",
+      error.message
+    );
+
     res.status(500).json({
       message: "Failed to book appointment",
       error: error.message,
@@ -83,13 +93,20 @@ const getMyAppointments = async (req, res) => {
         "scheduleId",
         "date startTime endTime isAvailable"
       )
-      .sort({ appointmentDate: 1 });
+      .sort({
+        appointmentDate: 1,
+      });
 
     res.status(200).json({
       appointments,
     });
 
   } catch (error) {
+    console.error(
+      "GET MY APPOINTMENTS ERROR:",
+      error.message
+    );
+
     res.status(500).json({
       message: "Failed to fetch appointments",
       error: error.message,
@@ -126,6 +143,11 @@ const getMyAppointmentById = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(
+      "GET MY APPOINTMENT ERROR:",
+      error.message
+    );
+
     res.status(500).json({
       message: "Failed to fetch appointment",
       error: error.message,
@@ -162,7 +184,14 @@ const cancelMyAppointment = async (req, res) => {
     }
 
     appointment.status = "cancelled";
+
     await appointment.save();
+
+    // Create notification
+    await notifyAppointmentCancelled(
+      appointment.userId,
+      appointment._id
+    );
 
     // Make schedule available again
     await Schedule.findByIdAndUpdate(
@@ -178,6 +207,11 @@ const cancelMyAppointment = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(
+      "CANCEL APPOINTMENT ERROR:",
+      error.message
+    );
+
     res.status(500).json({
       message: "Failed to cancel appointment",
       error: error.message,
@@ -331,15 +365,49 @@ const updateAppointmentStatus = async (req, res) => {
 
     await appointment.save();
 
-    if (
-      status === "cancelled" ||
-      status === "rejected"
-    ) {
+    // Appointment confirmed
+    if (status === "confirmed") {
+      await notifyAppointmentConfirmed(
+        appointment.userId,
+        appointment._id
+      );
+    }
+
+    // Appointment rejected
+    if (status === "rejected") {
+      await notifyAppointmentCancelled(
+        appointment.userId,
+        appointment._id
+      );
+
       await Schedule.findByIdAndUpdate(
         appointment.scheduleId,
         {
           isAvailable: true,
         }
+      );
+    }
+
+    // Appointment cancelled
+    if (status === "cancelled") {
+      await notifyAppointmentCancelled(
+        appointment.userId,
+        appointment._id
+      );
+
+      await Schedule.findByIdAndUpdate(
+        appointment.scheduleId,
+        {
+          isAvailable: true,
+        }
+      );
+    }
+
+    // Appointment completed
+    if (status === "completed") {
+      await notifyAppointmentCompleted(
+        appointment.userId,
+        appointment._id
       );
     }
 

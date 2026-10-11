@@ -291,6 +291,7 @@ const sendFeedback = async (req, res) => {
     // Save feedback
     session.feedback = feedback.trim();
     session.feedbackSent = true;
+    session.feedbackSentAt = new Date();
 
     await session.save();
 
@@ -305,6 +306,8 @@ const sendFeedback = async (req, res) => {
 
       feedback: {
         sessionId: session._id,
+        sessionDate: session.sessionDate,
+        feedbackSentAt:session.feedbackSentAt,
         feedback: session.feedback,
         feedbackSent: session.feedbackSent,
       },
@@ -455,6 +458,9 @@ const getMySessionFeedback = async (req, res) => {
 
         sessionDate:
           session.sessionDate,
+
+        feedbackSentAt:
+          session.feedbackSentAt,
 
         feedback:
           session.feedback,
