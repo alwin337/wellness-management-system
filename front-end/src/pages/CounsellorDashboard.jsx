@@ -33,7 +33,7 @@ import { getUserProfile, updateUserProfile } from "../services/userApi";
 import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
 import { getCounsellorAppointments, updateAppointmentStatus } from "../services/appointmentApi";
 import { getCounsellorReviews } from "../services/reviewApi";
-import { getAllCounsellors } from "../services/counsellorApi";
+import { getAvailableCounsellors } from "../services/counsellorApi";
 import {
   createSession,
   getMySessions,
@@ -165,9 +165,13 @@ const CounsellorDashboard = () => {
       // Fetch counsellor detail profile (specialization, contact number)
       let detailObj = null;
       try {
-        const cRes = await getAllCounsellors();
+        const cRes = await getAvailableCounsellors();
         const counsellors = cRes.data.counsellors || [];
-        detailObj = counsellors.find(c => c.user && c.user._id === userObj._id);
+        const currentUserId = userObj?._id || userObj?.id;
+        detailObj = counsellors.find(c => {
+          const counsellorUserId = c.user?._id || c.user?.id || c.user;
+          return counsellorUserId && String(counsellorUserId) === String(currentUserId);
+        });
       } catch (cErr) {
         console.warn("Failed to retrieve details specialization:", cErr);
       }

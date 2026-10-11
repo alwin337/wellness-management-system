@@ -4,6 +4,14 @@ export const getAllCounsellors = () => {
   return API.get("/counsellors");
 };
 
+export const getAvailableCounsellors = () => {
+  return API.get("/available-counsellors");
+};
+
+export const getActiveCounsellors = () => {
+  return API.get("/available-counsellors");
+};
+
 export const getCounsellor = (id) => {
   return API.get(`/counsellors/${id}`);
 };
