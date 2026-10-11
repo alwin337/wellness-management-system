@@ -37,9 +37,10 @@ import { getAllSchedules } from "../services/scheduleApi";
 import { getMyAppointments, createAppointment, cancelMyAppointment } from "../services/appointmentApi";
 import { createFacilityRequest } from "../services/facilityRequestApi";
 import { createReview } from "../services/reviewApi";
-import { getStudentSessionHistory } from "../services/sessionApi";
+import { getMySessionHistory } from "../services/sessionApi";
 import { getMyResults } from "../services/assessmentApi";
-import { getCounsellorDisplayName } from "../utils/nameHelper";
+import { getCounsellorDisplayName, getCounsellorInitials } from "../utils/nameHelper";
+import { getAvailableCounsellors } from "../services/counsellorApi";
 
 const StudentDashboard = () => {
   const { tab } = useParams();
@@ -49,6 +50,7 @@ const StudentDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [schedules, setSchedules] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [availableCounsellors, setAvailableCounsellors] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [assessmentsHistory, setAssessmentsHistory] = useState([]);
   const [selectedMood, setSelectedMood] = useState("okay");
@@ -101,10 +103,20 @@ const StudentDashboard = () => {
       const appointmentRes = await getMyAppointments();
       setAppointments(appointmentRes.data.appointments || []);
 
+      // Fetch available counsellors
+      let counsellorList = [];
+      try {
+        const counsellorRes = await getAvailableCounsellors();
+        counsellorList = counsellorRes.data.counsellors || [];
+      } catch (cErr) {
+        console.warn("Failed to load available counsellors:", cErr);
+      }
+      setAvailableCounsellors(counsellorList);
+
       // Fetch student session history (catch error silently in case student is not authorized yet)
       let sessionList = [];
       try {
-        const sessionRes = await getStudentSessionHistory();
+        const sessionRes = await getMySessionHistory();
         sessionList = sessionRes.data.sessions || [];
       } catch (sessErr) {
         console.warn("Failed to load student sessions from backend:", sessErr);
@@ -186,8 +198,7 @@ const StudentDashboard = () => {
       setSubmittingBooking(true);
 
       // Determine counsellor ID from slot
-      // Slot counsellor is populated.
-      const counsellorId = bookingSlot.counsellor._id;
+      const counsellorId = bookingSlot.counsellor?._id || bookingSlot.counsellor;
 
       const payload = {
         counsellorId,
@@ -306,35 +317,195 @@ const StudentDashboard = () => {
     }
   };
 
-  // Helper: Extract unique counsellor from schedules or appointments list
-  const getCounsellorDetails = () => {
-    // 1. Try from schedules
-    const scheduleWithCounsellor = schedules.find(s => s.counsellor && s.counsellor.user);
-    if (scheduleWithCounsellor) {
-      const c = scheduleWithCounsellor.counsellor;
+  // Helper: Resolve counsellor details from an appointment
+  const resolveCounsellorFromAppt = (appt) => {
+    if (!appt) return null;
+    const cid = appt.counsellorId?._id || (typeof appt.counsellorId === "string" ? appt.counsellorId : null);
+
+    // 1. If counsellorId has nested user object
+    if (appt.counsellorId?.user) {
       return {
-        name: getCounsellorDisplayName(c.user?.name || "College Counsellor"),
-        email: c.user?.email || "wellness@college.edu",
+        name: appt.counsellorId.user.name || appt.counsellorId.name,
+        email: appt.counsellorId.user.email || appt.counsellorId.email,
+        specialization: appt.counsellorId.specialization,
+        contactNumber: appt.counsellorId.contactNumber,
+      };
+    }
+
+    // 2. If counsellorId has direct fields
+    if (appt.counsellorId && typeof appt.counsellorId === "object" && (appt.counsellorId.name || appt.counsellorId.specialization)) {
+      return {
+        name: appt.counsellorId.name,
+        email: appt.counsellorId.email,
+        specialization: appt.counsellorId.specialization,
+        contactNumber: appt.counsellorId.contactNumber,
+      };
+    }
+
+    // 3. Match by scheduleId in schedules
+    const schedId = appt.scheduleId?._id || (typeof appt.scheduleId === "string" ? appt.scheduleId : null);
+    if (schedId) {
+      const slot = schedules.find(s => String(s._id) === String(schedId));
+      if (slot?.counsellor) {
+        return {
+          name: slot.counsellor.user?.name || slot.counsellor.name,
+          email: slot.counsellor.user?.email || slot.counsellor.email,
+          specialization: slot.counsellor.specialization,
+          contactNumber: slot.counsellor.contactNumber,
+        };
+      }
+    }
+
+    // 4. Match by counsellor ID in schedules
+    if (cid) {
+      const slot = schedules.find(s => {
+        const sCid = s.counsellor?._id || s.counsellor;
+        return sCid && String(sCid) === String(cid);
+      });
+      if (slot?.counsellor) {
+        return {
+          name: slot.counsellor.user?.name || slot.counsellor.name,
+          email: slot.counsellor.user?.email || slot.counsellor.email,
+          specialization: slot.counsellor.specialization,
+          contactNumber: slot.counsellor.contactNumber,
+        };
+      }
+    }
+
+    // 5. Match by counsellor ID in availableCounsellors
+    if (cid) {
+      const c = availableCounsellors.find(ac => {
+        const acId = ac._id;
+        const acUserId = ac.user?._id || ac.user;
+        return (acId && String(acId) === String(cid)) || (acUserId && String(acUserId) === String(cid));
+      });
+      if (c) {
+        return {
+          name: c.user?.name || c.name,
+          email: c.user?.email || c.email,
+          specialization: c.specialization,
+          contactNumber: c.contactNumber,
+        };
+      }
+    }
+
+    return null;
+  };
+
+  const getCounsellorNameForAppointment = (appt) => {
+    if (!appt) return "Wellness Counsellor";
+    const resolved = resolveCounsellorFromAppt(appt);
+    if (resolved?.name) {
+      return getCounsellorDisplayName(resolved.name);
+    }
+    if (appt.counsellorId?.name) {
+      return getCounsellorDisplayName(appt.counsellorId.name);
+    }
+    return "Wellness Counsellor";
+  };
+
+  const getCounsellorSpecialization = (appt) => {
+    if (!appt) return "";
+    const resolved = resolveCounsellorFromAppt(appt);
+    return resolved?.specialization || appt.counsellorId?.specialization || "";
+  };
+
+  const getCounsellorEmail = (appt) => {
+    if (!appt) return "";
+    const resolved = resolveCounsellorFromAppt(appt);
+    return resolved?.email || appt.counsellorId?.email || "";
+  };
+
+  // Helper: Extract counsellor name for session feedback guidance
+  const getCounsellorNameForSession = (session) => {
+    if (!session) return "Student Counsellor";
+
+    // 1. Direct or nested on session.counsellorId
+    if (session.counsellorId?.user?.name) {
+      return getCounsellorDisplayName(session.counsellorId.user.name);
+    }
+    if (session.counsellorId?.name) {
+      return getCounsellorDisplayName(session.counsellorId.name);
+    }
+
+    // 2. Match with appointment
+    const apptId = session.appointmentId?._id || (typeof session.appointmentId === "string" ? session.appointmentId : null);
+    if (apptId) {
+      const matchedAppt = appointments.find(a => String(a._id) === String(apptId));
+      if (matchedAppt) {
+        const name = getCounsellorNameForAppointment(matchedAppt);
+        if (name && name !== "Wellness Counsellor") return name;
+      }
+    }
+
+    // 3. Match counsellorId in schedules or availableCounsellors
+    const cid = session.counsellorId?._id || (typeof session.counsellorId === "string" ? session.counsellorId : null);
+    if (cid) {
+      const slot = schedules.find(s => {
+        const sCid = s.counsellor?._id || s.counsellor;
+        return sCid && String(sCid) === String(cid);
+      });
+      if (slot?.counsellor) {
+        const name = slot.counsellor.user?.name || slot.counsellor.name;
+        if (name) return getCounsellorDisplayName(name);
+      }
+
+      const c = availableCounsellors.find(ac => {
+        const acId = ac._id;
+        const acUserId = ac.user?._id || ac.user;
+        return (acId && String(acId) === String(cid)) || (acUserId && String(acUserId) === String(cid));
+      });
+      if (c) {
+        const name = c.user?.name || c.name;
+        if (name) return getCounsellorDisplayName(name);
+      }
+    }
+
+    return "Student Counsellor";
+  };
+
+  // Helper: Extract unique counsellor from schedules, availableCounsellors, or appointments list
+  const getCounsellorDetails = () => {
+    // 1. Try from availableCounsellors
+    if (availableCounsellors.length > 0) {
+      const c = availableCounsellors[0];
+      return {
+        name: getCounsellorDisplayName(c.user?.name || c.name || "College Counsellor"),
+        email: c.user?.email || c.email || "wellness@college.edu",
         specialization: c.specialization || "Wellness & Mental Support",
         contactNumber: c.contactNumber || "N/A",
         exists: true
       };
     }
 
-    // 2. Try from appointments
+    // 2. Try from schedules
+    const scheduleWithCounsellor = schedules.find(s => s.counsellor && (s.counsellor.user || s.counsellor.name));
+    if (scheduleWithCounsellor) {
+      const c = scheduleWithCounsellor.counsellor;
+      return {
+        name: getCounsellorDisplayName(c.user?.name || c.name || "College Counsellor"),
+        email: c.user?.email || c.email || "wellness@college.edu",
+        specialization: c.specialization || "Wellness & Mental Support",
+        contactNumber: c.contactNumber || "N/A",
+        exists: true
+      };
+    }
+
+    // 3. Try from appointments
     const apptWithCounsellor = appointments.find(a => a.counsellorId);
     if (apptWithCounsellor && apptWithCounsellor.counsellorId) {
       const c = apptWithCounsellor.counsellorId;
+      const counsellorUser = c.user || {};
       return {
-        name: getCounsellorDisplayName(c.name || "College Counsellor"),
-        email: c.email || "wellness@college.edu",
+        name: getCounsellorDisplayName(counsellorUser.name || c.name || "College Counsellor"),
+        email: counsellorUser.email || c.email || "wellness@college.edu",
         specialization: c.specialization || "Student Support & Counselling",
         contactNumber: c.contactNumber || "N/A",
         exists: true
       };
     }
 
-    // 3. Fallback default
+    // 4. Fallback default
     return {
       name: "Wellness Cell Counsellor",
       email: "counselling@college.edu",
@@ -344,26 +515,24 @@ const StudentDashboard = () => {
     };
   };
 
-  const getCounsellorNameForAppointment = (appt) => {
-    if (appt.counsellorId?.user?.name) {
-      return getCounsellorDisplayName(appt.counsellorId.user.name);
-    }
-    const cid = appt.counsellorId?._id || appt.counsellorId;
-    if (cid) {
-      const matchedSlot = schedules.find(s => s.counsellor?._id === cid || s.counsellor === cid);
-      if (matchedSlot?.counsellor?.user?.name) {
-        return getCounsellorDisplayName(matchedSlot.counsellor.user.name);
-      }
-    }
-    return appt.counsellorId?.name
-      ? getCounsellorDisplayName(appt.counsellorId.name)
-      : "Wellness Counsellor";
-  };
-
   const counsellor = getCounsellorDetails();
 
+  // Check if a slot is bookable and belongs to an active counsellor
+  const isSlotBookable = (slot) => {
+    if (!slot || !slot.isAvailable) return false;
+    if (slot.counsellor && slot.counsellor.isActive === false) return false;
+    if (availableCounsellors.length > 0 && slot.counsellor) {
+      const cid = slot.counsellor._id || slot.counsellor;
+      const isCounsellorActive = availableCounsellors.some(
+        ac => String(ac._id) === String(cid) || (ac.user && String(ac.user._id || ac.user) === String(cid))
+      );
+      if (!isCounsellorActive) return false;
+    }
+    return true;
+  };
+
   // Statistics Computations
-  const activeSchedulesCount = schedules.filter(s => s.isAvailable).length;
+  const activeSchedulesCount = schedules.filter(isSlotBookable).length;
   const upcomingAppointmentsCount = appointments.filter(
     a => a.status === "pending" || a.status === "confirmed"
   ).length;
@@ -590,7 +759,7 @@ const StudentDashboard = () => {
                           <>
                             <div className="flex items-center gap-3.5 mb-5">
                               <div className="w-11 h-11 rounded-full bg-[#D3E8DF] text-[#134A3D] flex items-center justify-center font-bold text-sm font-serif">
-                                {getCounsellorNameForAppointment(nextSession).replace("Dr. ", "").split(" ").map(n => n[0]).join("")}
+                                {getCounsellorInitials(getCounsellorNameForAppointment(nextSession))}
                               </div>
                               <div>
                                 <h4 className="font-bold text-sm text-[#152420]">{getCounsellorNameForAppointment(nextSession)}</h4>
@@ -770,8 +939,7 @@ const StudentDashboard = () => {
                                 return (
                                   <div className="space-y-4">
                                     {sortedSessions.slice(0, 2).map((session) => {
-                                      const rawName = session.counsellorId?.name || "Student Counsellor";
-                                      const displayName = rawName.startsWith("Dr.") ? rawName : `Dr. ${rawName}`;
+                                      const displayName = getCounsellorNameForSession(session);
                                       const formattedDate = new Date(session.sessionDate).toLocaleDateString("en-GB", {
                                         day: "numeric",
                                         month: "short",
@@ -783,7 +951,7 @@ const StudentDashboard = () => {
                                           <div className="space-y-2">
                                             <div className="flex items-center gap-2">
                                               <div className="avatar" style={{ width: "24px", height: "24px", fontSize: "10px" }}>
-                                                {displayName.replace("Dr. ", "").substring(0, 2).toUpperCase()}
+                                                {getCounsellorInitials(displayName)}
                                               </div>
                                               <div>
                                                 <h4 className="font-bold text-slate-800 text-xs">{displayName}</h4>
@@ -862,7 +1030,7 @@ const StudentDashboard = () => {
               Book Counselling Availability Slots
             </h2>
 
-            {schedules.filter(s => s.isAvailable).length === 0 ? (
+            {schedules.filter(isSlotBookable).length === 0 ? (
               <EmptyState
                 message="No open schedules at this time"
                 subtitle="All slots are currently booked. Please check back later."
@@ -870,7 +1038,7 @@ const StudentDashboard = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {schedules
-                  .filter(s => s.isAvailable)
+                  .filter(isSlotBookable)
                   .map((slot) => (
                     <div
                       key={slot._id}
@@ -900,10 +1068,13 @@ const StudentDashboard = () => {
                           </p>
                         </div>
 
-                        {slot.counsellor?.user && (
+                        {(slot.counsellor?.user?.name || slot.counsellor?.name) && (
                           <div className="pt-2 border-t border-slate-200/50">
                             <span className="text-[10px] text-slate-400 block font-semibold uppercase">Assigned to</span>
-                            <span className="text-xs font-bold text-slate-700">{slot.counsellor.user.name}</span>
+                            <span className="text-xs font-bold text-slate-700">{slot.counsellor.user?.name || slot.counsellor.name}</span>
+                            {slot.counsellor?.specialization && (
+                              <span className="text-[10px] text-slate-400 block">({slot.counsellor.specialization})</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -975,7 +1146,10 @@ const StudentDashboard = () => {
                                 {appt.startTime} - {appt.endTime}
                               </td>
                               <td className="py-4 text-slate-600 font-medium">
-                                {getCounsellorNameForAppointment(appt)}
+                                <span className="font-semibold text-slate-700 block">{getCounsellorNameForAppointment(appt)}</span>
+                                {getCounsellorSpecialization(appt) && (
+                                  <span className="text-[10px] text-slate-400 block">({getCounsellorSpecialization(appt)})</span>
+                                )}
                               </td>
                               <td className="py-4 max-w-xs truncate text-slate-600 font-medium" title={appt.reason}>
                                 {appt.reason || "N/A"}
@@ -1056,8 +1230,11 @@ const StudentDashboard = () => {
                               <div>
                                 <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider mb-0.5">Counsellor</span>
                                 <span className="text-slate-700 font-bold">{getCounsellorNameForAppointment(appt)}</span>
-                                {appt.counsellorId?.specialization && (
-                                  <span className="text-slate-400 block text-[10px] mt-0.5">({appt.counsellorId.specialization})</span>
+                                {getCounsellorSpecialization(appt) && (
+                                  <span className="text-slate-400 block text-[10px] mt-0.5">({getCounsellorSpecialization(appt)})</span>
+                                )}
+                                {getCounsellorEmail(appt) && (
+                                  <span className="text-slate-400 block text-[10px]">{getCounsellorEmail(appt)}</span>
                                 )}
                               </div>
                               <div>
@@ -1077,7 +1254,7 @@ const StudentDashboard = () => {
                             {/* Counsellor Guidance where available */}
                             {(() => {
                               const matchingSession = sessions.find(
-                                s => s.appointmentId === appt._id || s.appointmentId?._id === appt._id
+                                s => String(s.appointmentId?._id || s.appointmentId) === String(appt._id)
                               );
                               if (matchingSession?.feedbackSent && matchingSession.feedback) {
                                 return (
@@ -1269,10 +1446,15 @@ const StudentDashboard = () => {
                 <Clock className="w-4.5 h-4.5 text-slate-400" />
                 {bookingSlot.startTime} - {bookingSlot.endTime}
               </div>
-              {bookingSlot.counsellor?.user && (
-                <div className="pt-2 border-t border-slate-200/50 flex items-center gap-2 text-slate-600 text-xs">
-                  <User className="w-4 h-4 text-slate-400" />
-                  Counsellor: <strong className="text-slate-700">{bookingSlot.counsellor.user.name}</strong>
+              {(bookingSlot.counsellor?.user?.name || bookingSlot.counsellor?.name) && (
+                <div className="pt-2 border-t border-slate-200/50 flex flex-col gap-0.5 text-slate-600 text-xs">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-slate-400" />
+                    <span>Counsellor: <strong className="text-slate-700">{getCounsellorDisplayName(bookingSlot.counsellor?.user?.name || bookingSlot.counsellor?.name)}</strong></span>
+                  </div>
+                  {bookingSlot.counsellor?.specialization && (
+                    <span className="text-slate-400 text-[10px] ml-6">({bookingSlot.counsellor.specialization})</span>
+                  )}
                 </div>
               )}
             </div>
@@ -1339,7 +1521,7 @@ const StudentDashboard = () => {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Review Counselling Session</h3>
-                <p className="text-xs text-slate-500 mt-1">Submit feedback for your session with <strong className="text-slate-700">{reviewingAppt.counsellorId?.name || "Counsellor"}</strong>.</p>
+                <p className="text-xs text-slate-500 mt-1">Submit feedback for your session with <strong className="text-slate-700">{getCounsellorNameForAppointment(reviewingAppt)}</strong>.</p>
               </div>
               <button
                 onClick={() => setReviewingAppt(null)}

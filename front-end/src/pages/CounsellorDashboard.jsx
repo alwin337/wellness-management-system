@@ -33,7 +33,7 @@ import { getUserProfile, updateUserProfile } from "../services/userApi";
 import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
 import { getCounsellorAppointments, updateAppointmentStatus } from "../services/appointmentApi";
 import { getCounsellorReviews } from "../services/reviewApi";
-import { getAllCounsellors } from "../services/counsellorApi";
+import { getAvailableCounsellors } from "../services/counsellorApi";
 import {
   createSession,
   getMySessions,
@@ -124,8 +124,13 @@ const CounsellorDashboard = () => {
       try {
         const scheduleRes = await getAllSchedules();
         const allSched = scheduleRes.data.schedules || [];
+        const currentUserId = userObj?._id || userObj?.id;
         schedList = allSched.filter(
-          s => s.counsellor && s.counsellor.user && s.counsellor.user._id === userObj._id
+          s => s.counsellor && (
+            (s.counsellor.user?._id && String(s.counsellor.user._id) === String(currentUserId)) ||
+            (s.counsellor.user?.id && String(s.counsellor.user.id) === String(currentUserId)) ||
+            (s.counsellor.user && String(s.counsellor.user) === String(currentUserId))
+          )
         );
       } catch (schedErr) {
         console.warn("Schedules API failed:", schedErr);
@@ -165,9 +170,13 @@ const CounsellorDashboard = () => {
       // Fetch counsellor detail profile (specialization, contact number)
       let detailObj = null;
       try {
-        const cRes = await getAllCounsellors();
+        const cRes = await getAvailableCounsellors();
         const counsellors = cRes.data.counsellors || [];
-        detailObj = counsellors.find(c => c.user && c.user._id === userObj._id);
+        const currentUserId = userObj?._id || userObj?.id;
+        detailObj = counsellors.find(c => {
+          const counsellorUserId = c.user?._id || c.user?.id || c.user;
+          return counsellorUserId && String(counsellorUserId) === String(currentUserId);
+        });
       } catch (cErr) {
         console.warn("Failed to retrieve details specialization:", cErr);
       }
@@ -336,10 +345,11 @@ const CounsellorDashboard = () => {
 
   // Fetch and open student history
   const handleOpenStudentHistory = async (studentId) => {
-    if (!studentId) return;
+    const id = typeof studentId === "object" ? studentId?._id : studentId;
+    if (!id) return;
     try {
       setStudentHistoryLoading(true);
-      const res = await getStudentSessionHistory(studentId);
+      const res = await getStudentSessionHistory(id);
       setViewingStudentHistory(res.data);
     } catch (err) {
       console.error("Error fetching student history:", err);
@@ -566,7 +576,7 @@ const CounsellorDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <button
-                                onClick={() => handleOpenStudentHistory(appt.userId?._id)}
+                                onClick={() => handleOpenStudentHistory(appt.userId?._id || appt.userId)}
                                 className="font-bold text-sm text-[#152420] hover:underline text-left"
                               >
                                 {appt.userId?.name || "Student"}
@@ -649,7 +659,7 @@ const CounsellorDashboard = () => {
                             <tr key={appt._id} className="hover:bg-[#FBFAF7] transition">
                               <td className="py-3 font-semibold text-[#152420]">
                                 <button
-                                  onClick={() => handleOpenStudentHistory(appt.userId?._id)}
+                                  onClick={() => handleOpenStudentHistory(appt.userId?._id || appt.userId)}
                                   className="hover:underline text-left"
                                 >
                                   {appt.userId?.name || "Student"}
@@ -853,7 +863,7 @@ const CounsellorDashboard = () => {
                         <tr key={appt._id} className="hover:bg-[#FBFAF7] transition">
                           <td className="py-3.5 px-3">
                             <button
-                              onClick={() => handleOpenStudentHistory(appt.userId?._id)}
+                              onClick={() => handleOpenStudentHistory(appt.userId?._id || appt.userId)}
                               className="text-left hover:underline focus:outline-none"
                               title="Click to view student history"
                             >
