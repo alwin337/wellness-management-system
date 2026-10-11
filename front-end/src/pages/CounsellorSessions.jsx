@@ -27,6 +27,7 @@ import {
 } from "../services/sessionApi";
 
 import { getUserProfile } from "../services/userApi";
+import { getCounsellorDisplayName } from "../utils/nameHelper";
 
 const CounsellorSessions = () => {
   // ============================================================
@@ -183,7 +184,7 @@ const CounsellorSessions = () => {
           studentId: selectedSession.userId?._id || selectedSession.userId,
           feedback: feedback.trim(),
           feedbackSent: true,
-          counsellorName: profile?.name || "Dr. Anu",
+          counsellorName: profile?.name ? getCounsellorDisplayName(profile.name) : "Counsellor",
           date: new Date()
         });
         localStorage.setItem("fallback_guidance", JSON.stringify(filtered));
@@ -585,7 +586,7 @@ const CounsellorSessions = () => {
                             studentId: viewingSession.userId?._id || viewingSession.userId,
                             feedback: feedback.trim(),
                             feedbackSent: true,
-                            counsellorName: profile?.name || "Dr. Anu",
+                            counsellorName: profile?.name ? getCounsellorDisplayName(profile.name) : "Counsellor",
                             date: new Date()
                           });
                           localStorage.setItem("fallback_guidance", JSON.stringify(filtered));

@@ -198,8 +198,7 @@ const StudentDashboard = () => {
       setSubmittingBooking(true);
 
       // Determine counsellor ID from slot
-      // Slot counsellor is populated.
-      const counsellorId = bookingSlot.counsellor._id;
+      const counsellorId = bookingSlot.counsellor?._id || bookingSlot.counsellor;
 
       const payload = {
         counsellorId,
@@ -518,8 +517,22 @@ const StudentDashboard = () => {
 
   const counsellor = getCounsellorDetails();
 
+  // Check if a slot is bookable and belongs to an active counsellor
+  const isSlotBookable = (slot) => {
+    if (!slot || !slot.isAvailable) return false;
+    if (slot.counsellor && slot.counsellor.isActive === false) return false;
+    if (availableCounsellors.length > 0 && slot.counsellor) {
+      const cid = slot.counsellor._id || slot.counsellor;
+      const isCounsellorActive = availableCounsellors.some(
+        ac => String(ac._id) === String(cid) || (ac.user && String(ac.user._id || ac.user) === String(cid))
+      );
+      if (!isCounsellorActive) return false;
+    }
+    return true;
+  };
+
   // Statistics Computations
-  const activeSchedulesCount = schedules.filter(s => s.isAvailable).length;
+  const activeSchedulesCount = schedules.filter(isSlotBookable).length;
   const upcomingAppointmentsCount = appointments.filter(
     a => a.status === "pending" || a.status === "confirmed"
   ).length;
@@ -1017,7 +1030,7 @@ const StudentDashboard = () => {
               Book Counselling Availability Slots
             </h2>
 
-            {schedules.filter(s => s.isAvailable).length === 0 ? (
+            {schedules.filter(isSlotBookable).length === 0 ? (
               <EmptyState
                 message="No open schedules at this time"
                 subtitle="All slots are currently booked. Please check back later."
@@ -1025,7 +1038,7 @@ const StudentDashboard = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {schedules
-                  .filter(s => s.isAvailable)
+                  .filter(isSlotBookable)
                   .map((slot) => (
                     <div
                       key={slot._id}
@@ -1241,7 +1254,7 @@ const StudentDashboard = () => {
                             {/* Counsellor Guidance where available */}
                             {(() => {
                               const matchingSession = sessions.find(
-                                s => s.appointmentId === appt._id || s.appointmentId?._id === appt._id
+                                s => String(s.appointmentId?._id || s.appointmentId) === String(appt._id)
                               );
                               if (matchingSession?.feedbackSent && matchingSession.feedback) {
                                 return (

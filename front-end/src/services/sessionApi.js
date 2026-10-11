@@ -32,3 +32,7 @@ export const sendFeedback = (sessionId, feedback) => {
 export const getSession = (sessionId) => {
   return API.get(`/sessions/${sessionId}`);
 };
+
+export const getMySessionFeedback = (sessionId) => {
+  return API.get(`/sessions/my/${sessionId}/feedback`);
+};
