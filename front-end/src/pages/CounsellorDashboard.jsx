@@ -336,10 +336,11 @@ const CounsellorDashboard = () => {
 
   // Fetch and open student history
   const handleOpenStudentHistory = async (studentId) => {
-    if (!studentId) return;
+    const id = typeof studentId === "object" ? studentId?._id : studentId;
+    if (!id) return;
     try {
       setStudentHistoryLoading(true);
-      const res = await getStudentSessionHistory(studentId);
+      const res = await getStudentSessionHistory(id);
       setViewingStudentHistory(res.data);
     } catch (err) {
       console.error("Error fetching student history:", err);
@@ -566,7 +567,7 @@ const CounsellorDashboard = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <button
-                                onClick={() => handleOpenStudentHistory(appt.userId?._id)}
+                                onClick={() => handleOpenStudentHistory(appt.userId?._id || appt.userId)}
                                 className="font-bold text-sm text-[#152420] hover:underline text-left"
                               >
                                 {appt.userId?.name || "Student"}
@@ -649,7 +650,7 @@ const CounsellorDashboard = () => {
                             <tr key={appt._id} className="hover:bg-[#FBFAF7] transition">
                               <td className="py-3 font-semibold text-[#152420]">
                                 <button
-                                  onClick={() => handleOpenStudentHistory(appt.userId?._id)}
+                                  onClick={() => handleOpenStudentHistory(appt.userId?._id || appt.userId)}
                                   className="hover:underline text-left"
                                 >
                                   {appt.userId?.name || "Student"}
@@ -853,7 +854,7 @@ const CounsellorDashboard = () => {
                         <tr key={appt._id} className="hover:bg-[#FBFAF7] transition">
                           <td className="py-3.5 px-3">
                             <button
-                              onClick={() => handleOpenStudentHistory(appt.userId?._id)}
+                              onClick={() => handleOpenStudentHistory(appt.userId?._id || appt.userId)}
                               className="text-left hover:underline focus:outline-none"
                               title="Click to view student history"
                             >

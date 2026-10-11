@@ -37,7 +37,7 @@ import { getAllSchedules } from "../services/scheduleApi";
 import { getMyAppointments, createAppointment, cancelMyAppointment } from "../services/appointmentApi";
 import { createFacilityRequest } from "../services/facilityRequestApi";
 import { createReview } from "../services/reviewApi";
-import { getStudentSessionHistory } from "../services/sessionApi";
+import { getMySessionHistory } from "../services/sessionApi";
 import { getMyResults } from "../services/assessmentApi";
 import { getCounsellorDisplayName } from "../utils/nameHelper";
 
@@ -104,7 +104,7 @@ const StudentDashboard = () => {
       // Fetch student session history (catch error silently in case student is not authorized yet)
       let sessionList = [];
       try {
-        const sessionRes = await getStudentSessionHistory();
+        const sessionRes = await getMySessionHistory();
         sessionList = sessionRes.data.sessions || [];
       } catch (sessErr) {
         console.warn("Failed to load student sessions from backend:", sessErr);

@@ -129,14 +129,15 @@ const CounsellorSessions = () => {
   // ============================================================
 
   const handleViewStudentHistory = async (studentId) => {
-    if (!studentId) {
+    const id = typeof studentId === "object" ? studentId?._id : studentId;
+    if (!id) {
       toast.error("Student information is unavailable");
       return;
     }
 
     try {
       setSessionDetailsLoading(true);
-      const response = await getStudentSessionHistory(studentId);
+      const response = await getStudentSessionHistory(id);
       setViewingStudentHistory(response.data);
     } catch (error) {
       console.error("Error fetching student session history:", error);
@@ -344,7 +345,7 @@ const CounsellorSessions = () => {
                           </div>
                           <div>
                             <button
-                              onClick={() => handleViewStudentHistory(session.userId?._id)}
+                              onClick={() => handleViewStudentHistory(session.userId?._id || session.userId)}
                               className="font-serif font-bold text-sm text-[#152420] hover:underline text-left block leading-tight"
                             >
                               {studentName}
@@ -411,7 +412,7 @@ const CounsellorSessions = () => {
                           </button>
 
                           <button
-                            onClick={() => handleViewStudentHistory(session.userId?._id)}
+                            onClick={() => handleViewStudentHistory(session.userId?._id || session.userId)}
                             className="px-3.5 py-2 text-xs font-bold text-[#51625C] bg-white border border-[#DFE6E0] hover:bg-[#FBFAF7] rounded-xl transition"
                           >
                             Student History
@@ -464,7 +465,7 @@ const CounsellorSessions = () => {
                         <tr key={appt._id} className="hover:bg-[#FBFAF7] transition">
                           <td className="px-6 py-3.5">
                             <button
-                              onClick={() => handleViewStudentHistory(appt.userId?._id)}
+                              onClick={() => handleViewStudentHistory(appt.userId?._id || appt.userId)}
                               className="font-bold text-[#152420] hover:underline text-left block"
                             >
                               {appt.userId?.name || "Student"}
