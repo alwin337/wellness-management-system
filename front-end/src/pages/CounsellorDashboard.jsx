@@ -124,8 +124,13 @@ const CounsellorDashboard = () => {
       try {
         const scheduleRes = await getAllSchedules();
         const allSched = scheduleRes.data.schedules || [];
+        const currentUserId = userObj?._id || userObj?.id;
         schedList = allSched.filter(
-          s => s.counsellor && s.counsellor.user && s.counsellor.user._id === userObj._id
+          s => s.counsellor && (
+            (s.counsellor.user?._id && String(s.counsellor.user._id) === String(currentUserId)) ||
+            (s.counsellor.user?.id && String(s.counsellor.user.id) === String(currentUserId)) ||
+            (s.counsellor.user && String(s.counsellor.user) === String(currentUserId))
+          )
         );
       } catch (schedErr) {
         console.warn("Schedules API failed:", schedErr);
