@@ -13,11 +13,14 @@ import {
   ClipboardList,
   MessageSquare,
   Wrench,
-  Star
+  Star,
+  Bell
 } from "lucide-react";
+import { useNotifications } from "../../context/useNotifications";
 
 const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -35,6 +38,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/student/assessments": ClipboardList,
     "/student/chatbot": MessageSquare,
     "/student/facility-requests": Wrench,
+    "/student/notifications": Bell,
 
     // Counsellor links
     "/counsellor": LayoutDashboard,
@@ -43,6 +47,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/counsellor/sessions": History,
     "/counsellor/reviews": Star,
     "/counsellor/profile": UserCircle,
+    "/counsellor/notifications": Bell,
 
     // Admin links
     "/admin": LayoutDashboard,
@@ -50,6 +55,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
     "/admin/counsellor": UserCog,
     "/admin/schedules": CalendarDays,
     "/admin/requests": Wrench,
+    "/admin/notifications": Bell,
   };
 
   const menus = {
@@ -60,6 +66,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
       { name: "Book Session", path: "/student/schedule" },
       { name: "My Sessions", path: "/student/appointments" },
       { name: "Facility Requests", path: "/student/facility-requests" },
+      { name: "Notifications", path: "/student/notifications" },
       { name: "divider", isDivider: true },
       { name: "Profile", path: "/student/profile" },
     ],
@@ -68,6 +75,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
       { name: "Appointments", path: "/counsellor/appointments" },
       { name: "Schedule", path: "/counsellor/schedule" },
       { name: "Session History", path: "/counsellor/sessions" },
+      { name: "Notifications", path: "/counsellor/notifications" },
       { name: "Reviews", path: "/counsellor/reviews" },
       { name: "Profile", path: "/counsellor/profile" },
     ],
@@ -77,6 +85,7 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
       { name: "Counsellor Management", path: "/admin/counsellor" },
       { name: "Schedule Management", path: "/admin/schedules" },
       { name: "Facility Requests", path: "/admin/requests" },
+      { name: "Notifications", path: "/admin/notifications" },
     ],
   };
 
@@ -152,7 +161,12 @@ const Sidebar = ({ role = "student", isOpen, setIsOpen }) => {
                   }
                 >
                   <Icon className="w-4.5 h-4.5 flex-shrink-0 opacity-90" />
-                  <span>{item.name}</span>
+                  <span className="flex-1">{item.name}</span>
+                  {item.path.includes("notifications") && unreadCount > 0 && (
+                    <span className="ml-auto text-[10px] font-bold font-mono px-1.5 py-0.2 rounded-full bg-[#B25848] text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, XCircle } from "lucide-react";
 import { concernsData } from "../data/concernsData";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -211,25 +212,28 @@ export default function Navbar() {
         </button>
 
 
-        {/*LOGIN*/}
-          {user ? (
-          <Link
-            to={
-              user.role === "admin"
-                ? "/admin"
-                : user.role === "counsellor"
-                ? "/counsellor"
-                : "/student"
-            }
-            className="
-              text-[#2f4f3e]
-              font-medium
-              hover:text-[#7cb342]
-              transition-colors
-            "
-          >
-            Dashboard
-          </Link>
+        {/*LOGIN & NOTIFICATIONS*/}
+        {user ? (
+          <div className="flex items-center gap-3">
+            <NotificationBell variant="navbar" />
+            <Link
+              to={
+                user.role === "admin"
+                  ? "/admin"
+                  : user.role === "counsellor"
+                  ? "/counsellor"
+                  : "/student"
+              }
+              className="
+                text-[#2f4f3e]
+                font-medium
+                hover:text-[#7cb342]
+                transition-colors
+              "
+            >
+              Dashboard
+            </Link>
+          </div>
         ) : (
           <Link
             to="/login"
@@ -296,6 +300,22 @@ export default function Navbar() {
             >
               Resources
             </Link>
+
+            {user && (
+              <Link
+                to="/notifications"
+                onClick={closeMenu}
+                className="
+                  px-5
+                  py-4
+                  hover:bg-[#e9eddf]
+                  hover:text-[#7cb342]
+                  transition-colors
+                "
+              >
+                Notifications
+              </Link>
+            )}
 
 
             <div className="border-b border-[#dfe5d5]/50">
