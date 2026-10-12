@@ -15,8 +15,12 @@ export const getMySessions = () => {
   return API.get("/sessions/my");
 };
 
-export const getStudentSessionHistory = () => {
+export const getMySessionHistory = () => {
   return API.get("/sessions/my/history");
+};
+
+export const getStudentSessionHistory = (studentId) => {
+  return API.get(`/sessions/student/${studentId}`);
 };
 
 export const sendFeedback = (sessionId, feedback) => {
@@ -28,3 +32,7 @@ export const sendFeedback = (sessionId, feedback) => {
 export const getSession = (sessionId) => {
   return API.get(`/sessions/${sessionId}`);
 };
+
+export const getMySessionFeedback = (sessionId) => {
+  return API.get(`/sessions/my/${sessionId}/feedback`);
+};

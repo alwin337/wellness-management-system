@@ -7,6 +7,7 @@ import {
   User,
   UserPlus,
   UserCheck,
+  UserX,
   CalendarPlus,
   CalendarCheck,
   CalendarDays,
@@ -33,7 +34,7 @@ import StatCard from "../components/dashboard/StatCard";
 import { LoadingState, EmptyState, ErrorState } from "../components/dashboard/StateViews";
 
 import { getUserProfile } from "../services/userApi";
-import { getAllCounsellors, addCounsellor, updateCounsellor, deleteCounsellor } from "../services/counsellorApi";
+import { getAllCounsellors, addCounsellor, updateCounsellor, deactivateCounsellor, activateCounsellor } from "../services/counsellorApi";
 import { getAllSchedules, addSchedule, deleteSchedule } from "../services/scheduleApi";
 import { getAllFacilityRequests, updateFacilityRequest } from "../services/facilityRequestApi";
 import { getCounsellingStatistics } from "../services/statisticsApi";
@@ -211,19 +212,26 @@ const AdminDashboard = () => {
     }
   };
 
-  // Admin delete counsellor profile
-  const handleDeleteCounsellorObj = async () => {
+  // Admin activate or deactivate counsellor profile
+  const handleToggleCounsellorStatus = async () => {
     if (!counsellor) return;
-    if (!window.confirm("Are you sure you want to remove the counsellor? This deletes their profile and login account.")) {
+    const isCurrentlyActive = counsellor.isActive !== false;
+    const actionText = isCurrentlyActive ? "deactivate" : "activate";
+    if (!window.confirm(`Are you sure you want to ${actionText} this counsellor? ${isCurrentlyActive ? "Students will not be able to book new sessions." : "Students will be able to book sessions."}`)) {
       return;
     }
 
     try {
-      await deleteCounsellor(counsellor._id);
-      toast.success("Counsellor profile deleted");
+      if (isCurrentlyActive) {
+        await deactivateCounsellor(counsellor._id);
+        toast.success("Counsellor account deactivated successfully");
+      } else {
+        await activateCounsellor(counsellor._id);
+        toast.success("Counsellor account activated successfully");
+      }
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to delete counsellor");
+      toast.error(err.response?.data?.message || `Failed to ${actionText} counsellor`);
     }
   };
 
@@ -600,7 +608,13 @@ const AdminDashboard = () => {
                             <td className="py-3 text-[#51625C] font-mono text-[11px]">{counsellor.contactNumber || "—"}</td>
                             <td className="py-3 font-mono font-semibold text-[#152420]">{schedules.length}</td>
                             <td className="py-3">
-                              <span className="badge-dot badge-dot-active">Active</span>
+                              {counsellor.isActive !== false ? (
+                                <span className="badge-dot badge-dot-active">Active</span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F7E9E5] text-[#B25848] border border-[#EAD3CD]">
+                                  Inactive
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 text-right">
                               <button
@@ -889,8 +903,10 @@ const AdminDashboard = () => {
                     <div>
                       <h3 className="font-serif font-bold text-[#152420] text-base">{getCounsellorDisplayName(counsellor.user?.name || "Mathew")}</h3>
                       <p className="text-xs text-[#8A9A94] font-medium">{counsellor.user?.email}</p>
-                      <div className="inline-flex items-center gap-1 text-[11px] text-[#1F6F5C] font-semibold mt-1">
-                        <span className="breathe-dot" /> Available for sessions
+                      <div className={`inline-flex items-center gap-1 text-[11px] font-semibold mt-1 ${
+                        counsellor.isActive !== false ? "text-[#1F6F5C]" : "text-[#B25848]"
+                      }`}>
+                        <span className="breathe-dot" /> {counsellor.isActive !== false ? "Active · Available for sessions" : "Deactivated · Unavailable for booking"}
                       </div>
                     </div>
                   </div>
@@ -927,11 +943,24 @@ const AdminDashboard = () => {
                     </button>
 
                     <button
-                      onClick={handleDeleteCounsellorObj}
-                      className="flex-1 py-2.5 px-4 rounded-lg border border-[#F7E9E5] bg-[#F7E9E5] hover:bg-[#F2D7D1] text-[#B25848] text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      onClick={handleToggleCounsellorStatus}
+                      className={`flex-1 py-2.5 px-4 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        counsellor.isActive !== false
+                          ? "border-[#F7E9E5] bg-[#F7E9E5] hover:bg-[#F2D7D1] text-[#B25848]"
+                          : "border-[#D3E8DF] bg-[#E6F1EC] hover:bg-[#D3E8DF] text-[#1F6F5C]"
+                      }`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remove Profile
+                      {counsellor.isActive !== false ? (
+                        <>
+                          <UserX className="w-3.5 h-3.5" />
+                          Deactivate Account
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="w-3.5 h-3.5" />
+                          Activate Account
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1259,7 +1288,7 @@ const AdminDashboard = () => {
 
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-[#8A9A94]">Total Registered:</span>
-                <span className="font-serif font-bold text-base text-[#152420]">{statistics?.totalStudents ?? 3}</span>
+                <span className="font-serif font-bold text-base text-[#152420]">{statistics?.totalStudents ?? 0}</span>
               </div>
             </div>
 
